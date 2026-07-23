@@ -1,195 +1,36 @@
 const SHEET_ID='1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo';
-const TABLES={seasons:'Seasons',players:'Players',activities:'Activities',registrations:'Registrations',results:'Results',audit:'Audit'};
-const HEADERS={
- seasons:['id','name','code','bestCount','active','createdAt','updatedAt'],
- players:['id','seasonId','name','image','createdAt','updatedAt','imagePublicId','isAdmin','authToken'],
- activities:['id','seasonId','name','startAt','registrationOpenAt','registrationCloseAt','description','createdAt','updatedAt'],
- registrations:['id','seasonId','activityId','playerId','status','createdAt','updatedAt'],
- results:['id','seasonId','activityId','playerId','points','createdAt','updatedAt'],
- audit:['id','action','payload','createdAt']
-};
-
-function doGet(e){
- let response;
- try{
-  setup();
-  const action=String(e&&e.parameter&&e.parameter.action||'bootstrap');
-  let payload={};
-  if(e&&e.parameter&&e.parameter.payload){try{payload=JSON.parse(e.parameter.payload)}catch(_){throw new Error('Nederīgs payload JSON.')}}
-  const data=route_(action,payload);
-  if(action!=='bootstrap')audit_(action,safeAuditPayload_(payload));
-  response={ok:true,data:data,service:'MS Season API'};
- }catch(error){response={ok:false,error:errorMessage_(error)}}
- const callback=e&&e.parameter&&e.parameter.callback;
- return callback?javascript_(callback,response):json_(response);
-}
-
-function doPost(e){
- try{
-  setup();
-  const req=JSON.parse(e&&e.postData&&e.postData.contents||'{}');
-  if(!req.action)throw new Error('Nav norādīta API darbība.');
-  const payload=req.payload||{};
-  const data=route_(String(req.action),payload);
-  if(req.action!=='bootstrap')audit_(String(req.action),safeAuditPayload_(payload));
-  return json_({ok:true,data:data});
- }catch(error){return json_({ok:false,error:errorMessage_(error)})}
-}
-
-function route_(action,p){
- switch(action){
-  case'bootstrap':return bootstrap_();
-  case'joinPlayer':return joinPlayer_(p);
-  case'updatePlayer':return updatePlayer_(p);
-  case'register':return registerSelf_(p);
-  case'saveSeason':requireAdmin_(p);return saveSeason_(p);
-  case'saveActivity':requireAdmin_(p);return saveActivity_(p);
-  case'adminRegister':requireAdmin_(p);return register_(p);
-  case'saveResult':requireAdmin_(p);return saveResult_(p);
-  case'deleteActivity':requireAdmin_(p);return deleteActivity_(p.id);
-  default:throw new Error('Nezināma darbība: '+action);
- }
-}
-
-function bootstrap_(){
- return{
-  seasons:read_('seasons'),
-  players:read_('players').map(publicPlayer_),
-  activities:read_('activities'),
-  registrations:read_('registrations'),
-  results:read_('results'),
-  serverTime:new Date().toISOString()
- };
-}
-
-function joinPlayer_(p){
- requireFields_(p,['seasonId','name']);
- const name=String(p.name).trim();
- if(name.length<2)throw new Error('Vārdam jābūt vismaz 2 rakstzīmes garam.');
- if(!read_('seasons').some(x=>String(x.id)===String(p.seasonId)))throw new Error('Sezona nav atrasta.');
- let player=read_('players').find(x=>String(x.seasonId)===String(p.seasonId)&&normalize_(x.name)===normalize_(name));
- if(!player){
-  player=upsert_('players',{id:Utilities.getUuid(),seasonId:p.seasonId,name:name,image:'',imagePublicId:'',isAdmin:false,authToken:Utilities.getUuid()});
- }else if(!player.authToken){
-  player=upsert_('players',Object.assign({},player,{authToken:Utilities.getUuid()}));
- }
- return privatePlayer_(player);
-}
-
-function updatePlayer_(p){
- requireFields_(p,['id','authToken']);
- const player=requirePlayerAuth_(p.id,p.authToken);
- const allowed={id:player.id,seasonId:player.seasonId,name:player.name,image:player.image,imagePublicId:player.imagePublicId,isAdmin:player.isAdmin,authToken:player.authToken};
- if(p.image!==undefined)allowed.image=String(p.image||'');
- if(p.imagePublicId!==undefined)allowed.imagePublicId=String(p.imagePublicId||'');
- return publicPlayer_(upsert_('players',allowed));
-}
-
-function saveSeason_(p){
- requireFields_(p,['id','name','code']);
- const season=Object.assign({},p,{name:String(p.name).trim(),code:String(p.code).trim().toUpperCase(),bestCount:Math.max(1,Number(p.bestCount)||12),active:toBoolean_(p.active)});
- delete season.actorPlayerId;delete season.authToken;
- if(season.active)read_('seasons').forEach(x=>{if(String(x.id)!==String(season.id)&&toBoolean_(x.active))upsert_('seasons',Object.assign({},x,{active:false}))});
- return upsert_('seasons',season);
-}
-
-function saveActivity_(p){
- requireFields_(p,['id','seasonId','name','startAt']);
- const start=new Date(p.startAt);if(isNaN(start.getTime()))throw new Error('Nederīgs aktivitātes datums.');
- const open=p.registrationOpenAt?new Date(p.registrationOpenAt):new Date(start.getTime()-30*24*60*60*1000);
- const close=p.registrationCloseAt?new Date(p.registrationCloseAt):start;
- if(isNaN(open.getTime())||isNaN(close.getTime()))throw new Error('Nederīgs pieteikšanās datums.');
- const value=Object.assign({},p,{name:String(p.name).trim(),startAt:start.toISOString(),registrationOpenAt:open.toISOString(),registrationCloseAt:close.toISOString(),description:String(p.description||'').trim()});
- delete value.actorPlayerId;delete value.authToken;
- return upsert_('activities',value);
-}
-
-function registerSelf_(p){
- requireFields_(p,['seasonId','activityId','playerId','authToken']);
- const player=requirePlayerAuth_(p.playerId,p.authToken);
- if(String(player.seasonId)!==String(p.seasonId))throw new Error('Sezonas neatbilstība.');
- const activity=read_('activities').find(x=>String(x.id)===String(p.activityId)&&String(x.seasonId)===String(p.seasonId));
- if(!activity)throw new Error('Aktivitāte nav atrasta.');
- const now=new Date(),open=new Date(activity.registrationOpenAt),close=new Date(activity.registrationCloseAt);
- if(now<open||now>close)throw new Error('Pieteikšanās šai aktivitātei nav atvērta.');
- return register_(p);
-}
-
-function register_(p){
- requireFields_(p,['seasonId','activityId','playerId']);
- if(!read_('activities').some(x=>String(x.id)===String(p.activityId)))throw new Error('Aktivitāte nav atrasta.');
- if(!read_('players').some(x=>String(x.id)===String(p.playerId)))throw new Error('Spēlētājs nav atrasts.');
- const old=read_('registrations').find(x=>String(x.activityId)===String(p.activityId)&&String(x.playerId)===String(p.playerId));
- return upsert_('registrations',{id:old?old.id:Utilities.getUuid(),seasonId:p.seasonId,activityId:p.activityId,playerId:p.playerId,status:p.status||'registered'});
-}
-
-function saveResult_(p){
- requireFields_(p,['seasonId','activityId','playerId','points']);
- const points=Number(p.points);if(!isFinite(points)||points<0)throw new Error('Punktiem jābūt pozitīvam skaitlim.');
- const old=read_('results').find(x=>String(x.activityId)===String(p.activityId)&&String(x.playerId)===String(p.playerId));
- return upsert_('results',{id:old?old.id:Utilities.getUuid(),seasonId:p.seasonId,activityId:p.activityId,playerId:p.playerId,points:points});
-}
-
-function deleteActivity_(id){
- if(!id)throw new Error('Nav norādīta aktivitāte.');
- removeWhere_('activities',x=>String(x.id)===String(id));
- removeWhere_('registrations',x=>String(x.activityId)===String(id));
- removeWhere_('results',x=>String(x.activityId)===String(id));
- return true;
-}
-
-function requirePlayerAuth_(playerId,authToken){
- const player=read_('players').find(x=>String(x.id)===String(playerId));
- if(!player||!authToken||String(player.authToken)!==String(authToken))throw new Error('Nederīga spēlētāja autorizācija. Ieej profilā atkārtoti.');
- return player;
-}
-
-function requireAdmin_(p){
- requireFields_(p,['actorPlayerId','authToken']);
- const player=requirePlayerAuth_(p.actorPlayerId,p.authToken);
- if(!toBoolean_(player.isAdmin))throw new Error('Admin piekļuve liegta.');
- if(p.seasonId&&String(p.seasonId)!==String(player.seasonId))throw new Error('Administrators nevar pārvaldīt citu sezonu.');
- return player;
-}
-
-function publicPlayer_(p){return{id:p.id,seasonId:p.seasonId,name:p.name,image:p.image||'',imagePublicId:p.imagePublicId||'',isAdmin:toBoolean_(p.isAdmin),createdAt:p.createdAt,updatedAt:p.updatedAt}}
-function privatePlayer_(p){return Object.assign(publicPlayer_(p),{authToken:p.authToken})}
-function safeAuditPayload_(p){const copy=Object.assign({},p);delete copy.authToken;return copy}
-
-function setup(){Object.keys(TABLES).forEach(sheet_);return'Ready'}
+const TABLES={players:'Players',seasons:'Seasons',memberships:'Memberships',activities:'Activities',registrations:'Registrations',results:'Results',audit:'Audit'};
+const HEADERS={players:['id','name','image','imagePublicId','authToken','accessCode','createdAt','updatedAt'],seasons:['id','name','code','bestCount','active','createdAt','updatedAt'],memberships:['id','seasonId','playerId','role','status','joinedAt','createdAt','updatedAt'],activities:['id','seasonId','name','startAt','registrationOpenAt','registrationCloseAt','description','createdAt','updatedAt'],registrations:['id','seasonId','activityId','playerId','status','createdAt','updatedAt'],results:['id','seasonId','activityId','playerId','points','createdAt','updatedAt'],audit:['id','action','payload','createdAt']};
+function doGet(e){let out;try{setup();const action=String(e&&e.parameter&&e.parameter.action||'bootstrap');const payload=e&&e.parameter&&e.parameter.payload?JSON.parse(e.parameter.payload):{};out={ok:true,data:route_(action,payload),service:'MS Apps API'};if(action!=='bootstrap')audit_(action,payload)}catch(err){out={ok:false,error:errorMessage_(err)}}const cb=e&&e.parameter&&e.parameter.callback;return cb?javascript_(cb,out):json_(out)}
+function doPost(e){try{setup();const req=JSON.parse(e&&e.postData&&e.postData.contents||'{}');if(!req.action)throw new Error('Nav norādīta API darbība.');const data=route_(String(req.action),req.payload||{});if(req.action!=='bootstrap')audit_(String(req.action),req.payload||{});return json_({ok:true,data})}catch(err){return json_({ok:false,error:errorMessage_(err)})}}
+function route_(action,p){switch(action){case'bootstrap':return bootstrap_(p);case'createProfile':return createProfile_(p);case'loginProfile':return loginProfile_(p);case'updateProfile':return updateProfile_(p);case'joinSeries':return joinSeries_(p);case'saveSeason':requireAdmin_(p);return saveSeason_(p);case'saveActivity':requireAdmin_(p);return saveActivity_(p);case'deleteActivity':requireAdmin_(p);return deleteActivity_(p.id,p.seasonId);case'adminRegister':requireAdmin_(p);return register_(p);case'register':requirePlayer_(p);return register_(p);case'saveResult':requireAdmin_(p);return saveResult_(p);default:throw new Error('Nezināma darbība: '+action)}}
+function bootstrap_(p){if(p&&p.playerId&&p.authToken)requirePlayer_(p);return{players:read_('players').map(publicPlayer_),seasons:read_('seasons'),memberships:read_('memberships'),activities:read_('activities'),registrations:read_('registrations'),results:read_('results'),serverTime:new Date().toISOString()}}
+function createProfile_(p){const name=cleanName_(p.name);if(name.length<2)throw new Error('Vārdam jābūt vismaz 2 rakstzīmes garam.');if(read_('players').some(x=>normalize_(x.name)===normalize_(name)))throw new Error('Profils ar šādu vārdu jau pastāv. Izmanto “Esošs profils”.');return upsert_('players',{id:nextPlayerId_(),name:name,image:'',imagePublicId:'',authToken:Utilities.getUuid(),accessCode:String(Math.floor(100000+Math.random()*900000))})}
+function loginProfile_(p){requireFields_(p,['playerId','accessCode']);let player=read_('players').find(x=>String(x.id).toUpperCase()===String(p.playerId).trim().toUpperCase());if(!player||String(player.accessCode)!==String(p.accessCode).trim())throw new Error('Nepareizs spēlētāja ID vai piekļuves kods.');if(!player.authToken)player.authToken=Utilities.getUuid();return upsert_('players',player)}
+function updateProfile_(p){const player=requirePlayer_(p);return upsert_('players',Object.assign({},player,{name:p.name?cleanName_(p.name):player.name,image:p.image!==undefined?p.image:player.image,imagePublicId:p.imagePublicId!==undefined?p.imagePublicId:player.imagePublicId}))}
+function joinSeries_(p){const player=requirePlayer_(p),code=String(p.code||'').trim().toUpperCase(),season=read_('seasons').find(x=>String(x.code).trim().toUpperCase()===code);if(!season)throw new Error('Sērija ar šādu kodu nav atrasta.');let m=read_('memberships').find(x=>String(x.playerId)===String(player.id)&&String(x.seasonId)===String(season.id));if(!m)m=upsert_('memberships',{id:Utilities.getUuid(),seasonId:season.id,playerId:player.id,role:'player',status:'active',joinedAt:new Date().toISOString()});else if(String(m.status)==='removed')m=upsert_('memberships',Object.assign({},m,{status:'active'}));return{membership:m,season:season}}
+function saveSeason_(p){requireFields_(p,['id','name','code']);return upsert_('seasons',{id:p.id,name:String(p.name).trim(),code:String(p.code).trim().toUpperCase(),bestCount:Math.max(1,Number(p.bestCount)||12),active:toBoolean_(p.active)})}
+function saveActivity_(p){requireFields_(p,['id','seasonId','name','startAt']);const start=new Date(p.startAt);if(isNaN(start.getTime()))throw new Error('Nederīgs aktivitātes datums.');const open=p.registrationOpenAt?new Date(p.registrationOpenAt):new Date(start.getTime()-30*864e5),close=p.registrationCloseAt?new Date(p.registrationCloseAt):start;return upsert_('activities',{id:p.id,seasonId:p.seasonId,name:String(p.name).trim(),startAt:start.toISOString(),registrationOpenAt:open.toISOString(),registrationCloseAt:close.toISOString(),description:String(p.description||'').trim()})}
+function register_(p){requireFields_(p,['seasonId','activityId','playerId']);const member=read_('memberships').find(x=>String(x.seasonId)===String(p.seasonId)&&String(x.playerId)===String(p.playerId)&&String(x.status||'active')!=='removed');if(!member)throw new Error('Spēlētājs nav šīs sērijas dalībnieks.');const rows=read_('registrations'),old=rows.find(x=>String(x.activityId)===String(p.activityId)&&String(x.playerId)===String(p.playerId));return upsert_('registrations',Object.assign({},old||{},{id:old?old.id:Utilities.getUuid(),seasonId:p.seasonId,activityId:p.activityId,playerId:p.playerId,status:p.status||'registered'}))}
+function saveResult_(p){requireFields_(p,['seasonId','activityId','playerId','points']);const points=Number(p.points);if(!isFinite(points)||points<0)throw new Error('Punktiem jābūt pozitīvam skaitlim.');const rows=read_('results'),old=rows.find(x=>String(x.activityId)===String(p.activityId)&&String(x.playerId)===String(p.playerId));return upsert_('results',Object.assign({},old||{},{id:old?old.id:Utilities.getUuid(),seasonId:p.seasonId,activityId:p.activityId,playerId:p.playerId,points:points}))}
+function deleteActivity_(id,seasonId){if(!id)throw new Error('Nav norādīta aktivitāte.');removeWhere_('activities',x=>String(x.id)===String(id)&&String(x.seasonId)===String(seasonId));removeWhere_('registrations',x=>String(x.activityId)===String(id));removeWhere_('results',x=>String(x.activityId)===String(id));return true}
+function requirePlayer_(p){requireFields_(p,['playerId','authToken']);const player=read_('players').find(x=>String(x.id)===String(p.playerId)&&String(x.authToken)===String(p.authToken));if(!player)throw new Error('Sesija nav derīga. Pieslēdzies atkārtoti.');return player}
+function requireAdmin_(p){const player=requirePlayer_({playerId:p.actorPlayerId||p.playerId,authToken:p.authToken});const m=read_('memberships').find(x=>String(x.playerId)===String(player.id)&&String(x.seasonId)===String(p.seasonId)&&['admin','owner'].includes(String(x.role))&&String(x.status||'active')!=='removed');if(!m)throw new Error('Nav administratora tiesību šai sērijai.');return player}
+function setup(){migrateLegacyPlayers_();Object.keys(TABLES).forEach(sheet_);return'Ready'}
+function migrateLegacyPlayers_(){const ss=spreadsheet_(),sh=ss.getSheetByName('Players');if(!sh||sh.getLastRow()<1)return;const oldHeaders=sh.getRange(1,1,1,Math.max(1,sh.getLastColumn())).getValues()[0].map(String);if(!oldHeaders.includes('seasonId'))return;const oldRows=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,oldHeaders.length).getValues():[];let mem=ss.getSheetByName('Memberships');if(!mem)mem=ss.insertSheet('Memberships');mem.clear();mem.getRange(1,1,1,HEADERS.memberships.length).setValues([HEADERS.memberships]);const newPlayers=[],memberships=[];oldRows.filter(r=>r.some(v=>v!=='')).forEach(r=>{const o=Object.fromEntries(oldHeaders.map((h,i)=>[h,r[i]])),id=String(o.id||('MS'+String(newPlayers.length+1).padStart(4,'0'))),now=new Date().toISOString();newPlayers.push([id,o.name||'',o.image||'',o.imagePublicId||'',o.authToken||Utilities.getUuid(),String(Math.floor(100000+Math.random()*900000)),o.createdAt||now,o.updatedAt||now]);if(o.seasonId)memberships.push([Utilities.getUuid(),o.seasonId,id,toBoolean_(o.isAdmin)?'admin':'player','active',o.createdAt||now,o.createdAt||now,o.updatedAt||now])});sh.clear();sh.getRange(1,1,1,HEADERS.players.length).setValues([HEADERS.players]);if(newPlayers.length)sh.getRange(2,1,newPlayers.length,HEADERS.players.length).setValues(newPlayers);if(memberships.length)mem.getRange(2,1,memberships.length,HEADERS.memberships.length).setValues(memberships)}
 function spreadsheet_(){return SpreadsheetApp.openById(SHEET_ID)}
-function sheet_(key){
- const ss=spreadsheet_(),name=TABLES[key],headers=HEADERS[key];if(!name||!headers)throw new Error('Nezināma tabula: '+key);
- let sh=ss.getSheetByName(name);if(!sh)sh=ss.insertSheet(name);
- const current=sh.getLastRow()?sh.getRange(1,1,1,headers.length).getValues()[0]:[];
- if(!sh.getLastRow()||current.join('|')!==headers.join('|'))sh.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#111827').setFontColor('#ffffff');
- sh.setFrozenRows(1);return sh;
-}
-function read_(key){
- const sh=sheet_(key),headers=HEADERS[key],last=sh.getLastRow();if(last<2)return[];
- return sh.getRange(2,1,last-1,headers.length).getValues().filter(r=>r.some(v=>v!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,serializeCell_(r[i])])));
-}
-function upsert_(key,obj){
- const lock=LockService.getScriptLock();lock.waitLock(20000);
- try{
-  const sh=sheet_(key),headers=HEADERS[key],rows=read_(key),now=new Date().toISOString(),index=rows.findIndex(x=>String(x.id)===String(obj.id)),old=index>=0?rows[index]:{};
-  const value=Object.assign({},old,obj,{createdAt:old.createdAt||obj.createdAt||now,updatedAt:now}),row=headers.map(h=>value[h]??'');
-  index>=0?sh.getRange(index+2,1,1,headers.length).setValues([row]):sh.appendRow(row);return value;
- }finally{lock.releaseLock()}
-}
-function removeWhere_(key,predicate){
- const lock=LockService.getScriptLock();lock.waitLock(20000);
- try{
-  const sh=sheet_(key),headers=HEADERS[key],keep=read_(key).filter(x=>!predicate(x));
-  if(sh.getLastRow()>1)sh.getRange(2,1,sh.getLastRow()-1,headers.length).clearContent();
-  if(keep.length)sh.getRange(2,1,keep.length,headers.length).setValues(keep.map(x=>headers.map(h=>x[h]??'')));
- }finally{lock.releaseLock()}
-}
-function audit_(action,payload){try{upsert_('audit',{id:Utilities.getUuid(),action:action,payload:JSON.stringify(payload),createdAt:new Date().toISOString()})}catch(error){console.error(error)}}
-function requireFields_(obj,fields){fields.forEach(f=>{if(obj[f]===undefined||obj[f]===null||obj[f]==='')throw new Error('Trūkst lauka: '+f)})}
-function normalize_(v){return String(v||'').trim().toLocaleLowerCase('lv-LV')}
-function toBoolean_(v){return v===true||String(v).toLowerCase()==='true'||v===1||v==='1'}
+function sheet_(key){const ss=spreadsheet_(),name=TABLES[key],headers=HEADERS[key];let sh=ss.getSheetByName(name);if(!sh)sh=ss.insertSheet(name);const current=sh.getLastRow()?sh.getRange(1,1,1,headers.length).getValues()[0]:[];if(!sh.getLastRow()||current.join('|')!==headers.join('|'))sh.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#111827').setFontColor('#fff');sh.setFrozenRows(1);return sh}
+function read_(key){const sh=sheet_(key),h=HEADERS[key],last=sh.getLastRow();if(last<2)return[];return sh.getRange(2,1,last-1,h.length).getValues().filter(r=>r.some(v=>v!=='')).map(r=>Object.fromEntries(h.map((k,i)=>[k,serializeCell_(r[i])]))) }
+function upsert_(key,obj){const lock=LockService.getScriptLock();lock.waitLock(20000);try{const sh=sheet_(key),h=HEADERS[key],rows=read_(key),now=new Date().toISOString(),i=rows.findIndex(x=>String(x.id)===String(obj.id)),old=i>=0?rows[i]:{},value=Object.assign({},old,obj,{createdAt:old.createdAt||obj.createdAt||now,updatedAt:now}),row=h.map(k=>value[k]??'');i>=0?sh.getRange(i+2,1,1,h.length).setValues([row]):sh.appendRow(row);return value}finally{lock.releaseLock()}}
+function removeWhere_(key,pred){const sh=sheet_(key),h=HEADERS[key],keep=read_(key).filter(x=>!pred(x));if(sh.getLastRow()>1)sh.getRange(2,1,sh.getLastRow()-1,h.length).clearContent();if(keep.length)sh.getRange(2,1,keep.length,h.length).setValues(keep.map(x=>h.map(k=>x[k]??'')))}
+function nextPlayerId_(){const nums=read_('players').map(x=>Number(String(x.id).replace(/\D/g,''))).filter(Number.isFinite);return'MS'+String((nums.length?Math.max.apply(null,nums):0)+1).padStart(4,'0')}
+function publicPlayer_(p){return{id:p.id,name:p.name,image:p.image||'',imagePublicId:p.imagePublicId||'',createdAt:p.createdAt,updatedAt:p.updatedAt}}
+function cleanName_(v){return String(v||'').trim().replace(/\s+/g,' ')}
+function normalize_(v){return cleanName_(v).toLocaleLowerCase('lv-LV').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function requireFields_(o,fields){fields.forEach(f=>{if(o[f]===undefined||o[f]===null||o[f]==='')throw new Error('Trūkst lauka: '+f)})}
+function toBoolean_(v){return v===true||v==='true'||v===1||v==='1'}
 function serializeCell_(v){return v instanceof Date?v.toISOString():v}
+function audit_(action,payload){try{upsert_('audit',{id:Utilities.getUuid(),action:action,payload:JSON.stringify(payload),createdAt:new Date().toISOString()})}catch(e){}}
 function errorMessage_(e){return String(e&&e.message?e.message:e||'Nezināma kļūda')}
-function json_(obj){return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON)}
-function javascript_(callback,obj){if(!/^[A-Za-z_$][0-9A-Za-z_$\.]*$/.test(callback))throw new Error('Nederīgs callback.');return ContentService.createTextOutput(callback+'('+JSON.stringify(obj)+');').setMimeType(ContentService.MimeType.JAVASCRIPT)}
+function json_(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON)}
+function javascript_(cb,o){if(!/^[A-Za-z_$][0-9A-Za-z_$\.]*$/.test(cb))throw new Error('Nederīgs callback.');return ContentService.createTextOutput(cb+'('+JSON.stringify(o)+');').setMimeType(ContentService.MimeType.JAVASCRIPT)}
