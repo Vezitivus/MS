@@ -2,7 +2,7 @@ const SHEET_ID='1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo';
 const TABLES={seasons:'Seasons',players:'Players',activities:'Activities',registrations:'Registrations',results:'Results',audit:'Audit'};
 const HEADERS={
  seasons:['id','name','code','bestCount','active','createdAt','updatedAt'],
- players:['id','seasonId','name','image','createdAt','updatedAt'],
+ players:['id','seasonId','name','image','createdAt','updatedAt','imagePublicId'],
  activities:['id','seasonId','name','startAt','registrationOpenAt','registrationCloseAt','description','createdAt','updatedAt'],
  registrations:['id','seasonId','activityId','playerId','status','createdAt','updatedAt'],
  results:['id','seasonId','activityId','playerId','points','createdAt','updatedAt'],
@@ -58,7 +58,7 @@ function joinPlayer_(p){
  if(name.length<2)throw new Error('Vārdam jābūt vismaz 2 rakstzīmes garam.');
  if(!read_('seasons').some(x=>String(x.id)===String(p.seasonId)))throw new Error('Sezona nav atrasta.');
  let player=read_('players').find(x=>String(x.seasonId)===String(p.seasonId)&&normalize_(x.name)===normalize_(name));
- if(!player)player=upsert_('players',{id:Utilities.getUuid(),seasonId:p.seasonId,name:name,image:''});
+ if(!player)player=upsert_('players',{id:Utilities.getUuid(),seasonId:p.seasonId,name:name,image:'',imagePublicId:''});
  return player;
 }
 
@@ -119,7 +119,7 @@ function sheet_(key){
 }
 function read_(key){
  const sh=sheet_(key),headers=HEADERS[key],last=sh.getLastRow();if(last<2)return[];
- return sh.getRange(2,1,last-1,headers.length).getValues().filter(r=>r.some(v=>v!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,serializeCell_(r[i])])));
+ return sh.getRange(2,1,last-1,headers.length).getValues().filter(r=>r.some(v=>v!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,serializeCell_(r[i])])))
 }
 function upsert_(key,obj){
  const lock=LockService.getScriptLock();lock.waitLock(20000);
