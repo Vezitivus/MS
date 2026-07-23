@@ -1,38 +1,11 @@
-const CONFIG={
- API_URL:'https://script.google.com/macros/s/AKfycbyBVPgOoEUGQgUqeOUxT3CKDgnSK55lk5skfWIeCejWBNR7eKYxy_mrxdqN6CiaI4Lc/exec',
- STORAGE_KEY:'ms-season-session',
- TIMEOUT:25000
-};
-
-function api(action,payload={}){
- return new Promise((resolve,reject)=>{
-  const callback='__ms_jsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const script=document.createElement('script');
-  const timer=setTimeout(()=>finish(new Error('Savienojuma noildze. Pārbaudi Google Apps Script deployment un interneta savienojumu.')),CONFIG.TIMEOUT);
-  function finish(error,data){
-   clearTimeout(timer);
-   delete window[callback];
-   script.remove();
-   error?reject(error):resolve(data);
-  }
-  window[callback]=response=>{
-   if(!response||response.ok!==true)return finish(new Error(response?.error||'Google Apps Script neatgrieza derīgu atbildi.'));
-   finish(null,response.data);
-  };
-  script.onerror=()=>finish(new Error('Neizdevās ielādēt Google Apps Script API. Pārliecinies, ka deployment piekļuve ir “Anyone” un publicēta jaunākā versija.'));
-  const query=new URLSearchParams({
-   action:String(action),
-   payload:JSON.stringify(payload||{}),
-   callback,
-   t:String(Date.now())
-  });
-  script.src=CONFIG.API_URL+'?'+query.toString();
-  script.async=true;
-  document.head.appendChild(script);
- });
-}
-
-function session(){try{return JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)||'null')}catch{return null}}
+const CONFIG={API_URL:'https://script.google.com/macros/s/AKfycbyBVPgOoEUGQgUqeOUxT3CKDgnSK55lk5skfWIeCejWBNR7eKYxy_mrxdqN6CiaI4Lc/exec',STORAGE_KEY:'ms-season-session',CACHE_KEY:'ms-app-cache-v2',TIMEOUT:25000};
+function api(action,payload={}){return new Promise((resolve,reject)=>{const callback='__ms_jsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2),script=document.createElement('script'),timer=setTimeout(()=>finish(new Error('Savienojuma noildze. Pārbaudi internetu un Google Apps Script deployment.')),CONFIG.TIMEOUT);function finish(error,data){clearTimeout(timer);delete window[callback];script.remove();error?reject(error):resolve(data)}window[callback]=response=>{if(!response||response.ok!==true)return finish(new Error(response?.error||'Google Apps Script neatgrieza derīgu atbildi.'));finish(null,response.data)};script.onerror=()=>finish(new Error('Neizdevās sasniegt Google Apps Script.'));const query=new URLSearchParams({action:String(action),payload:JSON.stringify(payload||{}),callback,t:String(Date.now())});script.src=CONFIG.API_URL+'?'+query.toString();script.async=true;document.head.appendChild(script)})}
+function readJson(key,fallback=null){try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch{return fallback}}
+function session(){return readJson(CONFIG.STORAGE_KEY)}
 function setSession(value){localStorage.setItem(CONFIG.STORAGE_KEY,JSON.stringify(value))}
 function clearSession(){localStorage.removeItem(CONFIG.STORAGE_KEY)}
-window.MS={api,session,setSession,clearSession,CONFIG};
+function cache(){return readJson(CONFIG.CACHE_KEY,{})}
+function setCache(value){localStorage.setItem(CONFIG.CACHE_KEY,JSON.stringify({...value,cachedAt:Date.now()}))}
+function clearCache(){localStorage.removeItem(CONFIG.CACHE_KEY)}
+async function sync(payload){const data=await api('bootstrap',payload);setCache(data);return data}
+window.MS={api,session,setSession,clearSession,cache,setCache,clearCache,sync,CONFIG};
