@@ -2,11 +2,16 @@ const CLOUDINARY={cloudName:'dmkpb05ww',uploadPreset:'Vezitivus',folder:'Vezitiv
 
 (async()=>{
  const s=MS.session();
- if(!s?.playerId||!s?.seasonId)return location.replace('index.html');
+ if(!s?.playerId||!s?.seasonId||!s?.authToken)return resetSession();
  let db=await MS.api('bootstrap');
  let p=db.players.find(x=>String(x.id)===String(s.playerId));
  const season=db.seasons.find(x=>String(x.id)===String(s.seasonId));
- if(!p||!season){MS.clearSession();return location.replace('index.html')}
+ if(!p||!season){return resetSession()}
+
+ const isAdmin=p.isAdmin===true||String(p.isAdmin).toLowerCase()==='true';
+ if(isAdmin)adminLink.classList.remove('hidden');
+ const refreshedSession={...s,isAdmin};
+ MS.setSession(refreshedSession);
 
  const board=UI.leaderboard(db,season.id),me=board.find(x=>String(x.id)===String(p.id)),next=UI.nextActivity(db,season.id);
  seasonName.textContent=season.name;
@@ -29,7 +34,7 @@ const CLOUDINARY={cloudName:'dmkpb05ww',uploadPreset:'Vezitivus',folder:'Vezitiv
     registerBtn.disabled=true;
     registerBtn.textContent='Piesaka…';
     try{
-     await MS.api('register',{activityId:next.id,playerId:p.id,seasonId:season.id,status:'registered'});
+     await MS.api('register',{activityId:next.id,playerId:p.id,seasonId:season.id,status:'registered',authToken:s.authToken});
      location.reload();
     }catch(error){registerBtn.disabled=false;registerBtn.textContent='Pieteikties';alert(error.message)}
    };
@@ -59,7 +64,7 @@ const CLOUDINARY={cloudName:'dmkpb05ww',uploadPreset:'Vezitivus',folder:'Vezitiv
    const response=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/image/upload`,{method:'POST',body:form});
    const result=await response.json();
    if(!response.ok||!result.secure_url||!result.public_id)throw new Error(result?.error?.message||'Cloudinary augšupielāde neizdevās.');
-   p=await MS.api('updatePlayer',{id:p.id,image:result.secure_url,imagePublicId:result.public_id});
+   p=await MS.api('updatePlayer',{id:p.id,authToken:s.authToken,image:result.secure_url,imagePublicId:result.public_id});
    setAvatar(p);
    saveImage.textContent='Nomainīt attēlu';
    showNotice(imageState,'Attēls saglabāts.');
@@ -70,6 +75,7 @@ const CLOUDINARY={cloudName:'dmkpb05ww',uploadPreset:'Vezitivus',folder:'Vezitiv
  logoutBtn.onclick=switchLink.onclick=()=>MS.clearSession();
 })().catch(e=>{document.body.innerHTML=`<main class="shell"><div class="card"><h2>Kļūda</h2><p>${UI.esc(e.message)}</p></div></main>`});
 
+function resetSession(){MS.clearSession();location.replace('index.html')}
 function setAvatar(player){avatar.src=player.image||`https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=e5e7eb&color=111827&size=256`;}
 function showNotice(el,message,isError=false){el.textContent=message;el.classList.remove('hidden');el.style.color=isError?'#b42318':'';}
 async function compressImage(file){
