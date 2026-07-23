@@ -1,319 +1,147 @@
-const SHEET_ID = '1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo';
-
-const TABLES = {
-  seasons: 'Seasons',
-  players: 'Players',
-  activities: 'Activities',
-  registrations: 'Registrations',
-  results: 'Results',
-  audit: 'Audit'
+const SHEET_ID='1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo';
+const TABLES={seasons:'Seasons',players:'Players',activities:'Activities',registrations:'Registrations',results:'Results',audit:'Audit'};
+const HEADERS={
+ seasons:['id','name','code','bestCount','active','createdAt','updatedAt'],
+ players:['id','seasonId','name','image','createdAt','updatedAt'],
+ activities:['id','seasonId','name','startAt','registrationOpenAt','registrationCloseAt','description','createdAt','updatedAt'],
+ registrations:['id','seasonId','activityId','playerId','status','createdAt','updatedAt'],
+ results:['id','seasonId','activityId','playerId','points','createdAt','updatedAt'],
+ audit:['id','action','payload','createdAt']
 };
 
-const HEADERS = {
-  seasons: ['id','name','code','bestCount','active','createdAt','updatedAt'],
-  players: ['id','seasonId','name','image','createdAt','updatedAt'],
-  activities: ['id','seasonId','name','startAt','registrationOpenAt','registrationCloseAt','description','createdAt','updatedAt'],
-  registrations: ['id','seasonId','activityId','playerId','status','createdAt','updatedAt'],
-  results: ['id','seasonId','activityId','playerId','points','createdAt','updatedAt'],
-  audit: ['id','action','payload','createdAt']
-};
-
-function doGet() {
-  try {
-    setup();
-    return json_({ ok: true, data: bootstrap_(), service: 'MS Season API' });
-  } catch (error) {
-    return json_({ ok: false, error: errorMessage_(error) });
-  }
+function doGet(e){
+ let response;
+ try{
+  setup();
+  const action=String(e&&e.parameter&&e.parameter.action||'bootstrap');
+  let payload={};
+  if(e&&e.parameter&&e.parameter.payload){try{payload=JSON.parse(e.parameter.payload)}catch(_){throw new Error('Nederīgs payload JSON.')}}
+  const data=route_(action,payload);
+  if(action!=='bootstrap')audit_(action,payload);
+  response={ok:true,data:data,service:'MS Season API'};
+ }catch(error){response={ok:false,error:errorMessage_(error)}}
+ const callback=e&&e.parameter&&e.parameter.callback;
+ return callback?javascript_(callback,response):json_(response);
 }
 
-function doPost(e) {
-  try {
-    setup();
-    const body = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
-    const request = JSON.parse(body);
-    if (!request.action) throw new Error('Nav norādīta API darbība.');
-
-    const payload = request.payload || {};
-    const data = route_(String(request.action), payload);
-    audit_(String(request.action), payload);
-    return json_({ ok: true, data: data });
-  } catch (error) {
-    return json_({ ok: false, error: errorMessage_(error) });
-  }
+function doPost(e){
+ try{
+  setup();
+  const req=JSON.parse(e&&e.postData&&e.postData.contents||'{}');
+  if(!req.action)throw new Error('Nav norādīta API darbība.');
+  const payload=req.payload||{};
+  const data=route_(String(req.action),payload);
+  if(req.action!=='bootstrap')audit_(String(req.action),payload);
+  return json_({ok:true,data:data});
+ }catch(error){return json_({ok:false,error:errorMessage_(error)})}
 }
 
-function route_(action, payload) {
-  switch (action) {
-    case 'bootstrap': return bootstrap_();
-    case 'joinPlayer': return joinPlayer_(payload);
-    case 'updatePlayer': return updatePlayer_(payload);
-    case 'saveSeason': return saveSeason_(payload);
-    case 'saveActivity': return saveActivity_(payload);
-    case 'register': return register_(payload);
-    case 'saveResult': return saveResult_(payload);
-    case 'deleteActivity': return deleteActivity_(payload.id);
-    default: throw new Error('Nezināma darbība: ' + action);
-  }
+function route_(action,p){
+ switch(action){
+  case'bootstrap':return bootstrap_();
+  case'joinPlayer':return joinPlayer_(p);
+  case'updatePlayer':return updatePlayer_(p);
+  case'saveSeason':return saveSeason_(p);
+  case'saveActivity':return saveActivity_(p);
+  case'register':return register_(p);
+  case'saveResult':return saveResult_(p);
+  case'deleteActivity':return deleteActivity_(p.id);
+  default:throw new Error('Nezināma darbība: '+action);
+ }
 }
 
-function bootstrap_() {
-  return {
-    seasons: read_('seasons'),
-    players: read_('players'),
-    activities: read_('activities'),
-    registrations: read_('registrations'),
-    results: read_('results'),
-    serverTime: new Date().toISOString()
-  };
+function bootstrap_(){return{seasons:read_('seasons'),players:read_('players'),activities:read_('activities'),registrations:read_('registrations'),results:read_('results'),serverTime:new Date().toISOString()}}
+
+function joinPlayer_(p){
+ requireFields_(p,['seasonId','name']);
+ const name=String(p.name).trim();
+ if(name.length<2)throw new Error('Vārdam jābūt vismaz 2 rakstzīmes garam.');
+ if(!read_('seasons').some(x=>String(x.id)===String(p.seasonId)))throw new Error('Sezona nav atrasta.');
+ let player=read_('players').find(x=>String(x.seasonId)===String(p.seasonId)&&normalize_(x.name)===normalize_(name));
+ if(!player)player=upsert_('players',{id:Utilities.getUuid(),seasonId:p.seasonId,name:name,image:''});
+ return player;
 }
 
-function joinPlayer_(payload) {
-  requireFields_(payload, ['seasonId','name']);
-  const name = String(payload.name).trim();
-  if (name.length < 2) throw new Error('Vārdam jābūt vismaz 2 rakstzīmes garam.');
-
-  const season = read_('seasons').find(row => String(row.id) === String(payload.seasonId));
-  if (!season) throw new Error('Sezona nav atrasta.');
-
-  const players = read_('players');
-  let player = players.find(row =>
-    String(row.seasonId) === String(payload.seasonId) &&
-    normalize_(row.name) === normalize_(name)
-  );
-
-  if (!player) {
-    player = upsert_('players', {
-      id: Utilities.getUuid(),
-      seasonId: payload.seasonId,
-      name: name,
-      image: ''
-    });
-  }
-  return player;
+function updatePlayer_(p){
+ requireFields_(p,['id']);
+ const old=read_('players').find(x=>String(x.id)===String(p.id));
+ if(!old)throw new Error('Spēlētājs nav atrasts.');
+ return upsert_('players',Object.assign({},old,p));
 }
 
-function updatePlayer_(payload) {
-  requireFields_(payload, ['id']);
-  const existing = read_('players').find(row => String(row.id) === String(payload.id));
-  if (!existing) throw new Error('Spēlētājs nav atrasts.');
-  return upsert_('players', Object.assign({}, existing, payload));
+function saveSeason_(p){
+ requireFields_(p,['id','name','code']);
+ const season=Object.assign({},p,{name:String(p.name).trim(),code:String(p.code).trim().toUpperCase(),bestCount:Math.max(1,Number(p.bestCount)||12),active:toBoolean_(p.active)});
+ if(season.active)read_('seasons').forEach(x=>{if(String(x.id)!==String(season.id)&&toBoolean_(x.active))upsert_('seasons',Object.assign({},x,{active:false}))});
+ return upsert_('seasons',season);
 }
 
-function saveSeason_(payload) {
-  requireFields_(payload, ['id','name','code']);
-  const season = Object.assign({}, payload, {
-    name: String(payload.name).trim(),
-    code: String(payload.code).trim().toUpperCase(),
-    bestCount: Math.max(1, Number(payload.bestCount) || 12),
-    active: toBoolean_(payload.active)
-  });
-
-  if (season.active) {
-    const seasons = read_('seasons');
-    seasons.forEach(item => {
-      if (String(item.id) !== String(season.id) && toBoolean_(item.active)) {
-        upsert_('seasons', Object.assign({}, item, { active: false }));
-      }
-    });
-  }
-  return upsert_('seasons', season);
+function saveActivity_(p){
+ requireFields_(p,['id','seasonId','name','startAt']);
+ const start=new Date(p.startAt);if(isNaN(start.getTime()))throw new Error('Nederīgs aktivitātes datums.');
+ const open=p.registrationOpenAt?new Date(p.registrationOpenAt):new Date(start.getTime()-30*24*60*60*1000);
+ const close=p.registrationCloseAt?new Date(p.registrationCloseAt):start;
+ if(isNaN(open.getTime())||isNaN(close.getTime()))throw new Error('Nederīgs pieteikšanās datums.');
+ return upsert_('activities',Object.assign({},p,{name:String(p.name).trim(),startAt:start.toISOString(),registrationOpenAt:open.toISOString(),registrationCloseAt:close.toISOString(),description:String(p.description||'').trim()}));
 }
 
-function saveActivity_(payload) {
-  requireFields_(payload, ['id','seasonId','name','startAt']);
-  const start = new Date(payload.startAt);
-  if (isNaN(start.getTime())) throw new Error('Nederīgs aktivitātes datums.');
-
-  const activity = Object.assign({}, payload, {
-    name: String(payload.name).trim(),
-    startAt: start.toISOString(),
-    registrationOpenAt: payload.registrationOpenAt ? new Date(payload.registrationOpenAt).toISOString() : '',
-    registrationCloseAt: payload.registrationCloseAt ? new Date(payload.registrationCloseAt).toISOString() : '',
-    description: String(payload.description || '').trim()
-  });
-  return upsert_('activities', activity);
+function register_(p){
+ requireFields_(p,['seasonId','activityId','playerId']);
+ if(!read_('activities').some(x=>String(x.id)===String(p.activityId)))throw new Error('Aktivitāte nav atrasta.');
+ if(!read_('players').some(x=>String(x.id)===String(p.playerId)))throw new Error('Spēlētājs nav atrasts.');
+ const old=read_('registrations').find(x=>String(x.activityId)===String(p.activityId)&&String(x.playerId)===String(p.playerId));
+ return upsert_('registrations',Object.assign({},old||{},p,{id:old?old.id:Utilities.getUuid(),status:p.status||'registered'}));
 }
 
-function register_(payload) {
-  requireFields_(payload, ['seasonId','activityId','playerId']);
-  const activity = read_('activities').find(row => String(row.id) === String(payload.activityId));
-  if (!activity) throw new Error('Aktivitāte nav atrasta.');
-
-  const player = read_('players').find(row => String(row.id) === String(payload.playerId));
-  if (!player) throw new Error('Spēlētājs nav atrasts.');
-
-  const registrations = read_('registrations');
-  const existing = registrations.find(row =>
-    String(row.activityId) === String(payload.activityId) &&
-    String(row.playerId) === String(payload.playerId)
-  );
-
-  return upsert_('registrations', Object.assign({}, existing || {}, payload, {
-    id: existing ? existing.id : Utilities.getUuid(),
-    status: payload.status || 'registered'
-  }));
+function saveResult_(p){
+ requireFields_(p,['seasonId','activityId','playerId','points']);
+ const points=Number(p.points);if(!isFinite(points)||points<0)throw new Error('Punktiem jābūt pozitīvam skaitlim.');
+ const old=read_('results').find(x=>String(x.activityId)===String(p.activityId)&&String(x.playerId)===String(p.playerId));
+ return upsert_('results',Object.assign({},old||{},p,{id:old?old.id:Utilities.getUuid(),points:points}));
 }
 
-function saveResult_(payload) {
-  requireFields_(payload, ['seasonId','activityId','playerId','points']);
-  const points = Number(payload.points);
-  if (!isFinite(points) || points < 0) throw new Error('Punktiem jābūt pozitīvam skaitlim.');
-
-  const results = read_('results');
-  const existing = results.find(row =>
-    String(row.activityId) === String(payload.activityId) &&
-    String(row.playerId) === String(payload.playerId)
-  );
-
-  return upsert_('results', Object.assign({}, existing || {}, payload, {
-    id: existing ? existing.id : Utilities.getUuid(),
-    points: points
-  }));
+function deleteActivity_(id){
+ if(!id)throw new Error('Nav norādīta aktivitāte.');
+ removeWhere_('activities',x=>String(x.id)===String(id));
+ removeWhere_('registrations',x=>String(x.activityId)===String(id));
+ removeWhere_('results',x=>String(x.activityId)===String(id));
+ return true;
 }
 
-function deleteActivity_(id) {
-  if (!id) throw new Error('Nav norādīta aktivitāte.');
-  removeWhere_('activities', row => String(row.id) === String(id));
-  removeWhere_('registrations', row => String(row.activityId) === String(id));
-  removeWhere_('results', row => String(row.activityId) === String(id));
-  return true;
+function setup(){Object.keys(TABLES).forEach(sheet_);return'Ready'}
+function spreadsheet_(){return SpreadsheetApp.openById(SHEET_ID)}
+function sheet_(key){
+ const ss=spreadsheet_(),name=TABLES[key],headers=HEADERS[key];if(!name||!headers)throw new Error('Nezināma tabula: '+key);
+ let sh=ss.getSheetByName(name);if(!sh)sh=ss.insertSheet(name);
+ const current=sh.getLastRow()?sh.getRange(1,1,1,headers.length).getValues()[0]:[];
+ if(!sh.getLastRow()||current.join('|')!==headers.join('|'))sh.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#111827').setFontColor('#ffffff');
+ sh.setFrozenRows(1);return sh;
 }
-
-function setup() {
-  Object.keys(TABLES).forEach(key => sheet_(key));
-  return 'Ready';
+function read_(key){
+ const sh=sheet_(key),headers=HEADERS[key],last=sh.getLastRow();if(last<2)return[];
+ return sh.getRange(2,1,last-1,headers.length).getValues().filter(r=>r.some(v=>v!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,serializeCell_(r[i])])));
 }
-
-function spreadsheet_() {
-  return SpreadsheetApp.openById(SHEET_ID);
+function upsert_(key,obj){
+ const lock=LockService.getScriptLock();lock.waitLock(20000);
+ try{
+  const sh=sheet_(key),headers=HEADERS[key],rows=read_(key),now=new Date().toISOString(),index=rows.findIndex(x=>String(x.id)===String(obj.id)),old=index>=0?rows[index]:{};
+  const value=Object.assign({},old,obj,{createdAt:old.createdAt||obj.createdAt||now,updatedAt:now}),row=headers.map(h=>value[h]??'');
+  index>=0?sh.getRange(index+2,1,1,headers.length).setValues([row]):sh.appendRow(row);return value;
+ }finally{lock.releaseLock()}
 }
-
-function sheet_(key) {
-  const spreadsheet = spreadsheet_();
-  const name = TABLES[key];
-  const headers = HEADERS[key];
-  if (!name || !headers) throw new Error('Nezināma tabula: ' + key);
-
-  let sheet = spreadsheet.getSheetByName(name);
-  if (!sheet) sheet = spreadsheet.insertSheet(name);
-
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, headers.length)
-      .setValues([headers])
-      .setFontWeight('bold')
-      .setBackground('#111827')
-      .setFontColor('#ffffff');
-    sheet.setFrozenRows(1);
-  } else {
-    const currentHeaders = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
-    if (currentHeaders.join('|') !== headers.join('|')) {
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    }
-  }
-  return sheet;
+function removeWhere_(key,predicate){
+ const lock=LockService.getScriptLock();lock.waitLock(20000);
+ try{
+  const sh=sheet_(key),headers=HEADERS[key],keep=read_(key).filter(x=>!predicate(x));
+  if(sh.getLastRow()>1)sh.getRange(2,1,sh.getLastRow()-1,headers.length).clearContent();
+  if(keep.length)sh.getRange(2,1,keep.length,headers.length).setValues(keep.map(x=>headers.map(h=>x[h]??'')));
+ }finally{lock.releaseLock()}
 }
-
-function read_(key) {
-  const sheet = sheet_(key);
-  const headers = HEADERS[key];
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  return sheet.getRange(2, 1, lastRow - 1, headers.length)
-    .getValues()
-    .filter(row => row.some(value => value !== ''))
-    .map(row => {
-      const item = {};
-      headers.forEach((header, index) => item[header] = serializeCell_(row[index]));
-      return item;
-    });
-}
-
-function upsert_(key, object) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    const sheet = sheet_(key);
-    const headers = HEADERS[key];
-    const rows = read_(key);
-    const now = new Date().toISOString();
-    const index = rows.findIndex(row => String(row.id) === String(object.id));
-    const current = index >= 0 ? rows[index] : {};
-    const value = Object.assign({}, current, object, {
-      createdAt: current.createdAt || object.createdAt || now,
-      updatedAt: now
-    });
-    const row = headers.map(header => value[header] === undefined || value[header] === null ? '' : value[header]);
-
-    if (index >= 0) sheet.getRange(index + 2, 1, 1, headers.length).setValues([row]);
-    else sheet.appendRow(row);
-    return value;
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function removeWhere_(key, predicate) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    const sheet = sheet_(key);
-    const headers = HEADERS[key];
-    const rows = read_(key);
-    const keep = rows.filter(row => !predicate(row));
-
-    if (sheet.getLastRow() > 1) {
-      sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).clearContent();
-    }
-    if (keep.length) {
-      sheet.getRange(2, 1, keep.length, headers.length)
-        .setValues(keep.map(item => headers.map(header => item[header] === undefined ? '' : item[header])));
-    }
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function audit_(action, payload) {
-  try {
-    upsert_('audit', {
-      id: Utilities.getUuid(),
-      action: action,
-      payload: JSON.stringify(payload),
-      createdAt: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-function requireFields_(object, fields) {
-  fields.forEach(field => {
-    if (object[field] === undefined || object[field] === null || object[field] === '') {
-      throw new Error('Trūkst lauka: ' + field);
-    }
-  });
-}
-
-function normalize_(value) {
-  return String(value || '').trim().toLocaleLowerCase('lv-LV');
-}
-
-function toBoolean_(value) {
-  return value === true || value === 'true' || value === 1 || value === '1';
-}
-
-function serializeCell_(value) {
-  return value instanceof Date ? value.toISOString() : value;
-}
-
-function errorMessage_(error) {
-  return String(error && error.message ? error.message : error || 'Nezināma kļūda');
-}
-
-function json_(object) {
-  return ContentService
-    .createTextOutput(JSON.stringify(object))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+function audit_(action,payload){try{upsert_('audit',{id:Utilities.getUuid(),action:action,payload:JSON.stringify(payload),createdAt:new Date().toISOString()})}catch(error){console.error(error)}}
+function requireFields_(obj,fields){fields.forEach(f=>{if(obj[f]===undefined||obj[f]===null||obj[f]==='')throw new Error('Trūkst lauka: '+f)})}
+function normalize_(v){return String(v||'').trim().toLocaleLowerCase('lv-LV')}
+function toBoolean_(v){return v===true||v==='true'||v===1||v==='1'}
+function serializeCell_(v){return v instanceof Date?v.toISOString():v}
+function errorMessage_(e){return String(e&&e.message?e.message:e||'Nezināma kļūda')}
+function json_(obj){return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON)}
+function javascript_(callback,obj){if(!/^[A-Za-z_$][0-9A-Za-z_$\.]*$/.test(callback))throw new Error('Nederīgs callback.');return ContentService.createTextOutput(callback+'('+JSON.stringify(obj)+');').setMimeType(ContentService.MimeType.JAVASCRIPT)}
