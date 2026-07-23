@@ -1,4 +1,4 @@
-const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const qs=(s,r=document)=>r.querySelector(s),qsa=(s,r=document)=>[...r.querySelectorAll(s)];
 function fmtDate(v){if(!v)return'—';const d=new Date(v);if(Number.isNaN(d.getTime()))return'—';return new Intl.DateTimeFormat('lv-LV',{dateStyle:'medium',timeStyle:String(v).includes('T')?'short':undefined}).format(d)}
 function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function isTrue(v){return v===true||String(v).toLowerCase()==='true'||v===1||v==='1'}
@@ -8,4 +8,4 @@ function leaderboard(db,seasonId){const season=(db.seasons||[]).find(s=>String(s
 function nextActivity(db,seasonId){return (db.activities||[]).filter(a=>String(a.seasonId)===String(seasonId)&&new Date(a.startAt)>new Date()).sort((a,b)=>new Date(a.startAt)-new Date(b.startAt))[0]||null}
 function registrationOpen(a){if(!a)return false;const now=new Date(),start=new Date(a.startAt),open=a.registrationOpenAt?new Date(a.registrationOpenAt):new Date(start.getTime()-30*864e5),close=a.registrationCloseAt?new Date(a.registrationCloseAt):start;return now>=open&&now<=close}
 function uid(){return crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(36).slice(2)}
-window.UI={$, $$,fmtDate,esc,isTrue,membershipsFor,membership,leaderboard,nextActivity,registrationOpen,uid};
+window.UI={$:qs,$$:qsa,fmtDate,esc,isTrue,membershipsFor,membership,leaderboard,nextActivity,registrationOpen,uid};
