@@ -1,5 +1,5 @@
 const CONFIG={
- API_URL:'https://script.google.com/macros/s/AKfycbxHXONazqk86pSNbH3_I72ai0EZZYAhaLev8swGxFOI1HWxdWedsJSXON7pQ9VWfd1S/exec',
+ API_URL:'https://script.google.com/macros/s/AKfycbyBVPgOoEUGQgUqeOUxT3CKDgnSK55lk5skfWIeCejWBNR7eKYxy_mrxdqN6CiaI4Lc/exec',
  STORAGE_KEY:'ms-season-session',
  TIMEOUT:25000
 };
