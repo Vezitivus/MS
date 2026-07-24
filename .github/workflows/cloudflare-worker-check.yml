@@ -1,0 +1,33 @@
+name: Cloudflare Worker Check
+
+on:
+  push:
+    paths:
+      - 'cloudflare-worker/**'
+      - 'assets/api.cloudflare.js'
+      - '.github/workflows/cloudflare-worker-check.yml'
+  pull_request:
+    paths:
+      - 'cloudflare-worker/**'
+      - 'assets/api.cloudflare.js'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check Worker syntax
+        run: node --check cloudflare-worker/src/index.js
+      - name: Check migration script syntax
+        run: node --check cloudflare-worker/scripts/migrate-from-google.mjs
+      - name: Check frontend client syntax
+        run: node --check assets/api.cloudflare.js
+      - name: Install Worker dependencies
+        working-directory: cloudflare-worker
+        run: npm install
+      - name: Validate Wrangler configuration
+        working-directory: cloudflare-worker
+        run: npx wrangler deploy --dry-run
