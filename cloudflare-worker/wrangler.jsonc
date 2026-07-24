@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vezitivus-ms-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-24",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "ALLOWED_ORIGIN": "https://vezitivus.github.io"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vezitivus-ms-db",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
