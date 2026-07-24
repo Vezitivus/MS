@@ -5,8 +5,10 @@
     API_URL: 'https://script.google.com/macros/s/AKfycbyBVPgOoEUGQgUqeOUxT3CKDgnSK55lk5skfWIeCejWBNR7eKYxy_mrxdqN6CiaI4Lc/exec',
     SHEET_ID: '1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo',
     STORAGE_KEY: 'ms-season-session',
-    CACHE_KEY: 'ms-app-cache-v7',
-    TIMEOUT: 30000
+    CACHE_KEY: 'ms-app-cache-v8',
+    TIMEOUT: 30000,
+    VERIFY_ATTEMPTS: 8,
+    VERIFY_DELAY: 650
   };
 
   const TABLES = {
@@ -17,6 +19,8 @@
     Registrations: { key: 'registrations', headers: ['id','seasonId','activityId','playerId','status','createdAt','updatedAt'] },
     Results: { key: 'results', headers: ['id','seasonId','activityId','playerId','points','createdAt','updatedAt'] }
   };
+
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
   function readJson(key, fallback = null) {
     try {
@@ -62,7 +66,10 @@
         error ? reject(error) : resolve(rows);
       };
 
-      const timer = window.setTimeout(() => finish(new Error(`Neizdevās ielādēt Google Sheet lapu “${tableName}”.`)), CONFIG.TIMEOUT);
+      const timer = window.setTimeout(
+        () => finish(new Error(`Neizdevās ielādēt Google Sheet lapu “${tableName}”.`)),
+        CONFIG.TIMEOUT
+      );
 
       window[callback] = response => {
         if (!response || response.status === 'error' || !response.table) {
@@ -87,7 +94,7 @@
         headers: '1',
         tq: 'select *',
         tqx: `out:json;responseHandler:${callback}`,
-        t: String(Date.now())
+        _: String(Date.now())
       });
 
       script.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?${params.toString()}`;
@@ -127,41 +134,38 @@
     setCache(data);
   }
 
-  function post(action, payload) {
+  function submitForm(action, payload) {
     return new Promise((resolve, reject) => {
-      const requestId = `ms-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const frameName = `msFrame${Date.now()}${Math.random().toString(36).slice(2)}`;
       const iframe = document.createElement('iframe');
       const form = document.createElement('form');
+      let submitted = false;
       let finished = false;
 
       const cleanup = () => {
-        window.removeEventListener('message', onMessage);
         form.remove();
         window.setTimeout(() => iframe.remove(), 0);
       };
 
-      const finish = (error, data) => {
+      const finish = error => {
         if (finished) return;
         finished = true;
         clearTimeout(timer);
         cleanup();
-        error ? reject(error) : resolve(data);
+        error ? reject(error) : resolve(true);
       };
 
-      const onMessage = event => {
-        const message = event.data;
-        if (!message || message.source !== 'MS_APPS_GS' || message.requestId !== requestId) return;
-        if (message.ok !== true) finish(new Error(message.error || 'Google neizdevās saglabāt datus.'));
-        else finish(null, message.data);
-      };
-
-      const timer = window.setTimeout(() => finish(new Error('Google datu serveris neatbildēja uz saglabāšanas pieprasījumu.')), CONFIG.TIMEOUT);
-      window.addEventListener('message', onMessage);
+      const timer = window.setTimeout(
+        () => finish(new Error('Google datu serveris neatbildēja uz saglabāšanas pieprasījumu.')),
+        CONFIG.TIMEOUT
+      );
 
       iframe.name = frameName;
       iframe.hidden = true;
       iframe.setAttribute('aria-hidden', 'true');
+      iframe.onload = () => {
+        if (submitted) finish();
+      };
       document.body.appendChild(iframe);
 
       form.method = 'POST';
@@ -169,7 +173,11 @@
       form.target = frameName;
       form.hidden = true;
 
-      const fields = { action, payload: JSON.stringify(payload || {}), requestId };
+      const fields = {
+        action,
+        payload: JSON.stringify(payload || {})
+      };
+
       Object.entries(fields).forEach(([name, value]) => {
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -179,25 +187,71 @@
       });
 
       document.body.appendChild(form);
+      submitted = true;
       form.submit();
     });
+  }
+
+  async function verifySaved(tableName, row) {
+    let lastError = null;
+    for (let attempt = 0; attempt < CONFIG.VERIFY_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) await sleep(CONFIG.VERIFY_DELAY);
+      try {
+        const rows = await loadTable(tableName);
+        const found = rows.find(item => String(item.id) === String(row.id));
+        if (found) return found;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error(`Google neapstiprināja saglabāšanu lapā “${tableName}”.`);
+  }
+
+  async function verifyRemoved(tableName, id) {
+    let lastError = null;
+    for (let attempt = 0; attempt < CONFIG.VERIFY_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) await sleep(CONFIG.VERIFY_DELAY);
+      try {
+        const rows = await loadTable(tableName);
+        if (!rows.some(item => String(item.id) === String(id))) return true;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error(`Google neapstiprināja dzēšanu lapā “${tableName}”.`);
   }
 
   async function saveRow(table, row) {
     if (!TABLES[table]) throw new Error('Nederīga datu tabula.');
     if (!row?.id) throw new Error('Trūkst rindas ID.');
-    const saved = await post('save', { table, row });
-    updateCachedRow(table, saved || row);
-    return saved || row;
+
+    await submitForm('save', { table, row });
+    const saved = await verifySaved(table, row);
+    updateCachedRow(table, saved);
+    return saved;
   }
 
   async function removeRow(table, id) {
     if (!TABLES[table]) throw new Error('Nederīga datu tabula.');
     if (!id) throw new Error('Trūkst rindas ID.');
-    await post('remove', { table, id });
+
+    await submitForm('remove', { table, id });
+    await verifyRemoved(table, id);
     removeCachedRow(table, id);
     return true;
   }
 
-  window.MS = { load, sync: load, saveRow, removeRow, session, setSession, clearSession, cache, setCache, clearCache, CONFIG };
+  window.MS = {
+    load,
+    sync: load,
+    saveRow,
+    removeRow,
+    session,
+    setSession,
+    clearSession,
+    cache,
+    setCache,
+    clearCache,
+    CONFIG
+  };
 })();
