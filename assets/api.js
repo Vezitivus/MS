@@ -5,10 +5,10 @@
     API_URL: 'https://script.google.com/macros/s/AKfycbyBVPgOoEUGQgUqeOUxT3CKDgnSK55lk5skfWIeCejWBNR7eKYxy_mrxdqN6CiaI4Lc/exec',
     SHEET_ID: '1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo',
     STORAGE_KEY: 'ms-season-session',
-    CACHE_KEY: 'ms-app-cache-v8',
+    CACHE_KEY: 'ms-app-cache-v9',
     TIMEOUT: 30000,
     VERIFY_ATTEMPTS: 8,
-    VERIFY_DELAY: 650
+    VERIFY_DELAY: 500
   };
 
   const TABLES = {
@@ -42,10 +42,67 @@
   function setCache(value) { localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({ ...emptyDb(), ...value, cachedAt: Date.now() })); }
   function clearCache() { localStorage.removeItem(CONFIG.CACHE_KEY); }
 
-  function normalizeCell(value) {
-    if (value == null) return '';
-    if (value instanceof Date) return value.toISOString();
-    return value;
+  function normalizePinLike(value) {
+    const text = String(value ?? '').trim();
+    return /^\d+$/.test(text) && text.length < 5 ? text.padStart(5, '0') : text;
+  }
+
+  function normalizeRow(tableName, row = {}) {
+    const normalized = { ...row };
+    if (tableName === 'Players') normalized.accessCode = normalizePinLike(normalized.accessCode);
+    if (tableName === 'Seasons') normalized.adminPinHash = normalizePinLike(normalized.adminPinHash);
+    return normalized;
+  }
+
+  function normalizeDb(value = {}) {
+    const data = emptyDb();
+    Object.entries(TABLES).forEach(([tableName, config]) => {
+      const rows = Array.isArray(value[config.key]) ? value[config.key] : [];
+      data[config.key] = rows.map(row => normalizeRow(tableName, row));
+    });
+    data.serverTime = value.serverTime || new Date().toISOString();
+    return data;
+  }
+
+  function jsonp(action = 'load', payload = {}) {
+    return new Promise((resolve, reject) => {
+      const callback = `msApi${Date.now()}${Math.random().toString(36).slice(2)}`;
+      const script = document.createElement('script');
+      let finished = false;
+
+      const finish = (error, data) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        try { delete window[callback]; } catch (_) {}
+        script.remove();
+        error ? reject(error) : resolve(data);
+      };
+
+      const timer = window.setTimeout(
+        () => finish(new Error('Google Apps Script neatbild.')),
+        CONFIG.TIMEOUT
+      );
+
+      window[callback] = response => {
+        if (!response || response.ok !== true) {
+          finish(new Error(response?.error || 'Google Apps Script neatgrieza derīgu atbildi.'));
+          return;
+        }
+        finish(null, response.data);
+      };
+
+      script.onerror = () => finish(new Error('Neizdevās ielādēt datus no Google Apps Script.'));
+      const query = new URLSearchParams({
+        action: String(action),
+        payload: JSON.stringify(payload || {}),
+        callback,
+        _: String(Date.now())
+      });
+      script.src = `${CONFIG.API_URL}?${query.toString()}`;
+      script.async = true;
+      document.head.appendChild(script);
+    });
   }
 
   function loadTable(tableName) {
@@ -81,9 +138,9 @@
         const rows = (response.table.rows || []).map(sourceRow => {
           const row = {};
           table.headers.forEach((header, index) => {
-            row[header] = normalizeCell(sourceRow.c?.[index]?.v);
+            row[header] = sourceRow.c?.[index]?.v ?? '';
           });
-          return row;
+          return normalizeRow(tableName, row);
         }).filter(row => String(row.id || '').trim() !== '');
 
         finish(null, rows);
@@ -104,12 +161,24 @@
     });
   }
 
-  async function load() {
+  async function loadFromSheets() {
     const entries = await Promise.all(
       Object.entries(TABLES).map(async ([tableName, config]) => [config.key, await loadTable(tableName)])
     );
-    const data = Object.fromEntries(entries);
-    data.serverTime = new Date().toISOString();
+    return normalizeDb(Object.fromEntries(entries));
+  }
+
+  async function load() {
+    let data;
+    try {
+      data = normalizeDb(await jsonp('load'));
+    } catch (serverError) {
+      try {
+        data = await loadFromSheets();
+      } catch (sheetError) {
+        throw new Error(`${serverError.message} ${sheetError.message}`.trim());
+      }
+    }
     setCache(data);
     return data;
   }
@@ -117,11 +186,12 @@
   function updateCachedRow(tableName, row) {
     const config = TABLES[tableName];
     if (!config || !row?.id) return;
-    const data = cache();
-    const rows = Array.isArray(data[config.key]) ? [...data[config.key]] : [];
-    const index = rows.findIndex(item => String(item.id) === String(row.id));
-    if (index >= 0) rows[index] = { ...rows[index], ...row };
-    else rows.push(row);
+    const data = normalizeDb(cache());
+    const rows = [...data[config.key]];
+    const normalized = normalizeRow(tableName, row);
+    const index = rows.findIndex(item => String(item.id) === String(normalized.id));
+    if (index >= 0) rows[index] = { ...rows[index], ...normalized };
+    else rows.push(normalized);
     data[config.key] = rows;
     setCache(data);
   }
@@ -129,13 +199,14 @@
   function removeCachedRow(tableName, id) {
     const config = TABLES[tableName];
     if (!config) return;
-    const data = cache();
-    data[config.key] = (data[config.key] || []).filter(item => String(item.id) !== String(id));
+    const data = normalizeDb(cache());
+    data[config.key] = data[config.key].filter(item => String(item.id) !== String(id));
     setCache(data);
   }
 
   function submitForm(action, payload) {
     return new Promise((resolve, reject) => {
+      const requestId = `ms-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const frameName = `msFrame${Date.now()}${Math.random().toString(36).slice(2)}`;
       const iframe = document.createElement('iframe');
       const form = document.createElement('form');
@@ -143,16 +214,24 @@
       let finished = false;
 
       const cleanup = () => {
+        window.removeEventListener('message', onMessage);
         form.remove();
         window.setTimeout(() => iframe.remove(), 0);
       };
 
-      const finish = error => {
+      const finish = (error, data = null) => {
         if (finished) return;
         finished = true;
         clearTimeout(timer);
         cleanup();
-        error ? reject(error) : resolve(true);
+        error ? reject(error) : resolve(data);
+      };
+
+      const onMessage = event => {
+        const message = event.data;
+        if (!message || message.source !== 'MS_APPS_GS' || message.requestId !== requestId) return;
+        if (message.ok !== true) finish(new Error(message.error || 'Google neizdevās saglabāt datus.'));
+        else finish(null, message.data || null);
       };
 
       const timer = window.setTimeout(
@@ -160,13 +239,19 @@
         CONFIG.TIMEOUT
       );
 
+      window.addEventListener('message', onMessage);
+
       iframe.name = frameName;
       iframe.hidden = true;
       iframe.setAttribute('aria-hidden', 'true');
       iframe.onload = () => {
-        if (submitted) finish();
+        if (!submitted) {
+          submitted = true;
+          form.submit();
+          return;
+        }
+        window.setTimeout(() => finish(null, null), 250);
       };
-      document.body.appendChild(iframe);
 
       form.method = 'POST';
       form.action = CONFIG.API_URL;
@@ -175,7 +260,8 @@
 
       const fields = {
         action,
-        payload: JSON.stringify(payload || {})
+        payload: JSON.stringify(payload || {}),
+        requestId
       };
 
       Object.entries(fields).forEach(([name, value]) => {
@@ -187,33 +273,42 @@
       });
 
       document.body.appendChild(form);
-      submitted = true;
-      form.submit();
+      iframe.srcdoc = '<!doctype html><title>ready</title>';
+      document.body.appendChild(iframe);
     });
   }
 
   async function verifySaved(tableName, row) {
+    const config = TABLES[tableName];
     let lastError = null;
     for (let attempt = 0; attempt < CONFIG.VERIFY_ATTEMPTS; attempt += 1) {
       if (attempt > 0) await sleep(CONFIG.VERIFY_DELAY);
       try {
-        const rows = await loadTable(tableName);
-        const found = rows.find(item => String(item.id) === String(row.id));
+        const data = normalizeDb(await jsonp('load'));
+        const found = data[config.key].find(item => String(item.id) === String(row.id));
         if (found) return found;
       } catch (error) {
         lastError = error;
       }
     }
+    try {
+      const rows = await loadTable(tableName);
+      const found = rows.find(item => String(item.id) === String(row.id));
+      if (found) return found;
+    } catch (error) {
+      lastError = error;
+    }
     throw lastError || new Error(`Google neapstiprināja saglabāšanu lapā “${tableName}”.`);
   }
 
   async function verifyRemoved(tableName, id) {
+    const config = TABLES[tableName];
     let lastError = null;
     for (let attempt = 0; attempt < CONFIG.VERIFY_ATTEMPTS; attempt += 1) {
       if (attempt > 0) await sleep(CONFIG.VERIFY_DELAY);
       try {
-        const rows = await loadTable(tableName);
-        if (!rows.some(item => String(item.id) === String(id))) return true;
+        const data = normalizeDb(await jsonp('load'));
+        if (!data[config.key].some(item => String(item.id) === String(id))) return true;
       } catch (error) {
         lastError = error;
       }
@@ -224,9 +319,8 @@
   async function saveRow(table, row) {
     if (!TABLES[table]) throw new Error('Nederīga datu tabula.');
     if (!row?.id) throw new Error('Trūkst rindas ID.');
-
-    await submitForm('save', { table, row });
-    const saved = await verifySaved(table, row);
+    const responseRow = await submitForm('save', { table, row });
+    const saved = responseRow?.id ? normalizeRow(table, responseRow) : await verifySaved(table, row);
     updateCachedRow(table, saved);
     return saved;
   }
@@ -234,7 +328,6 @@
   async function removeRow(table, id) {
     if (!TABLES[table]) throw new Error('Nederīga datu tabula.');
     if (!id) throw new Error('Trūkst rindas ID.');
-
     await submitForm('remove', { table, id });
     await verifyRemoved(table, id);
     removeCachedRow(table, id);
@@ -252,6 +345,7 @@
     cache,
     setCache,
     clearCache,
+    normalizePinLike,
     CONFIG
   };
 })();
