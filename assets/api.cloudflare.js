@@ -88,6 +88,14 @@
   };
 
   const admin = {
+    async createSeason({ name, code, pin, bestCount = 12 }) {
+      const data = await request('/api/admin/create-season', {
+        method: 'POST',
+        body: { name, code, pin, bestCount }
+      });
+      setAdminToken(data.token);
+      return data;
+    },
     async login({ code, pin }) {
       const data = await request('/api/admin/login', { method: 'POST', body: { code, pin } });
       setAdminToken(data.token);
