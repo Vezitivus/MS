@@ -20,7 +20,9 @@ jobs:
         with:
           node-version: '20'
       - name: Check Worker syntax
-        run: node --check cloudflare-worker/src/index.js
+        run: |
+          node --check cloudflare-worker/src/index.js
+          node --check cloudflare-worker/src/router.js
       - name: Check migration script syntax
         run: node --check cloudflare-worker/scripts/migrate-from-google.mjs
       - name: Check frontend client syntax
