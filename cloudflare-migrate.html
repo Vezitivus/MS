@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="lv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>MS datu migrācija</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/style.css?v=20260725-1">
+  <style>
+    body{min-height:100svh}.wrap{max-width:680px;margin:0 auto;padding:24px 16px 60px}.steps{display:grid;gap:12px}.status{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.55;min-height:120px}.danger-note{border:1px solid rgba(255,59,48,.25);background:rgba(255,59,48,.06)}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Cloudflare D1</div>
+      <h1>Google datu pārnešana</h1>
+      <p class="muted">Šī lapa nolasa esošās Google Sheet tabulas un vienā reizē pārnes tās uz Cloudflare D1.</p>
+    </section>
+
+    <section class="card danger-note">
+      <strong>Drošība</strong>
+      <p class="muted" style="margin-bottom:0">Migrācijas parole netiek saglabāta pārlūkā vai GitHub. Tā tiek nosūtīta tikai uz tavu Worker.</p>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <form id="migrationForm" class="form-grid">
+        <div class="field">
+          <label>WORKER ADRESE</label>
+          <input id="workerUrl" type="url" autocomplete="url" required placeholder="https://vezitivus-ms-api....workers.dev">
+        </div>
+        <div class="field">
+          <label>MIGRĀCIJAS PAROLE</label>
+          <input id="migrationSecret" type="password" autocomplete="off" required placeholder="GitHub secret MIGRATION_SECRET">
+        </div>
+        <div class="field">
+          <label>GOOGLE SHEET ID</label>
+          <input id="sheetId" autocomplete="off" required value="1-nheGOekslHRIf1KCeLDR5v-NN9oFtsCtfO082zQkHo">
+        </div>
+        <button id="startButton" class="btn primary block" type="submit">Pārbaudīt un pārnest datus</button>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="eyebrow">Statuss</div>
+      <div id="status" class="status muted" style="margin-top:10px">Gatavs.</div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const TABLES = {
+        Players: ['id','name','image','imagePublicId','authToken','accessCode','createdAt','updatedAt'],
+        Seasons: ['id','name','code','bestCount','active','adminPinHash','adminToken','createdAt','updatedAt'],
+        Memberships: ['id','seasonId','playerId','role','status','joinedAt','createdAt','updatedAt'],
+        Activities: ['id','seasonId','name','startAt','registrationOpenAt','registrationCloseAt','description','createdAt','updatedAt'],
+        Registrations: ['id','seasonId','activityId','playerId','status','createdAt','updatedAt'],
+        Results: ['id','seasonId','activityId','playerId','points','createdAt','updatedAt']
+      };
+
+      const form = document.getElementById('migrationForm');
+      const status = document.getElementById('status');
+      const button = document.getElementById('startButton');
+      const workerInput = document.getElementById('workerUrl');
+      const secretInput = document.getElementById('migrationSecret');
+      const sheetInput = document.getElementById('sheetId');
+
+      workerInput.value = localStorage.getItem('ms-cloudflare-api-url') || '';
+
+      function log(message) {
+        const time = new Intl.DateTimeFormat('lv-LV', { hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(new Date());
+        status.textContent += `\n[${time}] ${message}`;
+        status.scrollTop = status.scrollHeight;
+      }
+
+      function normalizeWorkerUrl(value) {
+        const url = String(value || '').trim().replace(/\/$/, '');
+        if (!/^https:\/\/[^/]+\.workers\.dev$/i.test(url) && !/^https:\/\//i.test(url)) {
+          throw new Error('Ievadi pilnu HTTPS Worker adresi.');
+        }
+        return url;
+      }
+
+      function loadGoogleTable(sheetId, tableName, headers) {
+        return new Promise((resolve, reject) => {
+          const callback = `msMigration${Date.now()}${Math.random().toString(36).slice(2)}`;
+          const script = document.createElement('script');
+          let completed = false;
+
+          const finish = (error, rows) => {
+            if (completed) return;
+            completed = true;
+            clearTimeout(timer);
+            try { delete window[callback]; } catch (_) {}
+            script.remove();
+            error ? reject(error) : resolve(rows);
+          };
+
+          const timer = setTimeout(() => finish(new Error(`Google lapa “${tableName}” neatbildēja.`)), 20000);
+
+          window[callback] = response => {
+            if (!response || response.status === 'error' || !response.table) {
+              const detail = response?.errors?.[0]?.detailed_message || response?.errors?.[0]?.message || '';
+              finish(new Error(detail || `Neizdevās nolasīt Google lapu “${tableName}”.`));
+              return;
+            }
+
+            const rows = (response.table.rows || []).map(sourceRow => {
+              const item = {};
+              headers.forEach((header, index) => {
+                const cell = sourceRow.c?.[index];
+                item[header] = cell?.v ?? '';
+              });
+              return item;
+            }).filter(item => String(item.id || '').trim() !== '');
+
+            finish(null, rows);
+          };
+
+          const params = new URLSearchParams({
+            sheet: tableName,
+            headers: '1',
+            tq: 'select *',
+            tqx: `out:json;responseHandler:${callback}`,
+            _: String(Date.now())
+          });
+
+          script.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?${params}`;
+          script.async = true;
+          script.onerror = () => finish(new Error(`Neizdevās sasniegt Google lapu “${tableName}”.`));
+          document.head.appendChild(script);
+        });
+      }
+
+      async function checkWorker(workerUrl) {
+        const response = await fetch(`${workerUrl}/health`, { cache:'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok !== true || data.database !== true) {
+          throw new Error(data.error || 'Worker vai D1 datubāze nav gatava.');
+        }
+        return data;
+      }
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        button.disabled = true;
+        status.textContent = 'Sākam pārbaudi…';
+
+        try {
+          const workerUrl = normalizeWorkerUrl(workerInput.value);
+          const migrationSecret = secretInput.value;
+          const sheetId = sheetInput.value.trim();
+          if (!migrationSecret) throw new Error('Trūkst migrācijas paroles.');
+          if (!sheetId) throw new Error('Trūkst Google Sheet ID.');
+
+          localStorage.setItem('ms-cloudflare-api-url', workerUrl);
+
+          log('Pārbaudām Worker un D1…');
+          await checkWorker(workerUrl);
+          log('Worker un D1 darbojas.');
+
+          const data = {};
+          for (const [tableName, headers] of Object.entries(TABLES)) {
+            log(`Lasām ${tableName}…`);
+            const rows = await loadGoogleTable(sheetId, tableName, headers);
+            data[tableName.charAt(0).toLowerCase() + tableName.slice(1)] = rows;
+            log(`${tableName}: ${rows.length} rindas.`);
+          }
+
+          log('Nosūtām datus uz Cloudflare D1…');
+          const response = await fetch(`${workerUrl}/api/migrate/google`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Migration-Secret': migrationSecret
+            },
+            body: JSON.stringify(data)
+          });
+
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || result.ok !== true) {
+            throw new Error(result.error || `Migrācija neizdevās: HTTP ${response.status}`);
+          }
+
+          log('Migrācija pabeigta.');
+          log(`Spēlētāji: ${result.counts?.players ?? 0}`);
+          log(`Sērijas: ${result.counts?.seasons ?? 0}`);
+          log(`Dalības: ${result.counts?.memberships ?? 0}`);
+          log(`Aktivitātes: ${result.counts?.activities ?? 0}`);
+          log(`Pieteikumi: ${result.counts?.registrations ?? 0}`);
+          log(`Rezultāti: ${result.counts?.results ?? 0}`);
+          log('Dati tagad atrodas Cloudflare D1.');
+        } catch (error) {
+          log(`KĻŪDA: ${error?.message || error}`);
+        } finally {
+          button.disabled = false;
+          secretInput.value = '';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
