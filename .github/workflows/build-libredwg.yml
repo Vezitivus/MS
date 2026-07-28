@@ -1,0 +1,32 @@
+name: Build LibreDWG tools
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libpcre2-dev
+      - name: Clone LibreDWG
+        run: git clone --depth 1 --branch 0.13.3 https://github.com/LibreDWG/libredwg.git src
+      - name: Configure
+        run: cmake -S src -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DDISABLE_WERROR=ON
+      - name: Build tools
+        run: cmake --build build --target dxf2dwg dwgread dwg2dxf -j2
+      - name: Collect tools
+        run: |
+          mkdir -p tools
+          find build -type f \( -name dxf2dwg -o -name dwgread -o -name dwg2dxf \) -executable -exec cp -v {} tools/ \;
+          ls -lh tools
+      - name: Upload tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: libredwg-tools-linux
+          path: tools/
+          retention-days: 1
