@@ -14,9 +14,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config libpcre2-dev
       - name: Clone LibreDWG
-        run: git clone --depth 1 https://github.com/LibreDWG/libredwg.git src
+        run: git clone --depth 1 --recurse-submodules https://github.com/LibreDWG/libredwg.git src
       - name: Configure
-        run: cmake -S src -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DDISABLE_WERROR=ON -DENABLE_LTO=OFF -DBUILD_TESTING=OFF
+        run: cmake -S src -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DDISABLE_WERROR=ON -DENABLE_LTO=OFF -DBUILD_TESTING=OFF -DLIBREDWG_DISABLE_JSON=ON
       - name: Build tools
         run: |
           set +e
