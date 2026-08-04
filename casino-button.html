@@ -3,17 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f1ea" />
+  <meta name="theme-color" content="#ff4fd8" />
   <title>Spied šeit</title>
   <style>
-    :root {
-      --bg: #f5f1ea;
-      --ink: #171717;
-      --accent: #ff4b2b;
-      --accent-dark: #d93618;
-      --card: rgba(255,255,255,.72);
-    }
-
     * { box-sizing: border-box; }
 
     html, body {
@@ -22,23 +14,11 @@
       min-height: 100%;
       overflow: hidden;
       font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--ink);
     }
 
-    body::before {
-      content: "";
-      position: fixed;
-      inset: -30%;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.95), transparent 30%),
-        radial-gradient(circle at 75% 70%, rgba(255,75,43,.12), transparent 28%);
-      animation: drift 9s ease-in-out infinite alternate;
-      pointer-events: none;
-    }
-
-    @keyframes drift {
-      to { transform: translate3d(3%, -2%, 0) scale(1.04); }
+    body {
+      background: #12051e;
+      color: white;
     }
 
     .screen {
@@ -46,56 +26,96 @@
       inset: 0;
       display: grid;
       place-items: center;
-      padding: 24px;
-      transition: opacity .45s ease, transform .45s ease, visibility .45s;
+      padding: 22px;
+      transition: opacity .42s ease, transform .42s ease, visibility .42s;
     }
 
     .screen.hidden {
       opacity: 0;
-      transform: scale(1.035);
+      transform: scale(1.05);
       visibility: hidden;
       pointer-events: none;
     }
 
+    #startScreen {
+      background:
+        radial-gradient(circle at 16% 18%, rgba(255,255,255,.42), transparent 17%),
+        radial-gradient(circle at 82% 76%, rgba(255,240,91,.58), transparent 19%),
+        linear-gradient(135deg, #ff4fd8, #7b5cff 34%, #32ddff 67%, #65ff9a);
+      background-size: 180% 180%;
+      animation: rainbowMove 6s ease-in-out infinite alternate;
+    }
+
+    #startScreen::before,
+    #startScreen::after {
+      content: "✦  ✧  ★  ✦  ✧  ★  ✦";
+      position: fixed;
+      white-space: nowrap;
+      font-size: clamp(24px, 7vw, 70px);
+      letter-spacing: .38em;
+      color: rgba(255,255,255,.68);
+      filter: drop-shadow(0 0 12px rgba(255,255,255,.75));
+      animation: sparkleFloat 5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    #startScreen::before { top: 6%; left: -5%; transform: rotate(-10deg); }
+    #startScreen::after { bottom: 7%; right: -8%; transform: rotate(10deg); animation-delay: -2.5s; }
+
+    @keyframes rainbowMove {
+      to { background-position: 100% 100%; }
+    }
+
+    @keyframes sparkleFloat {
+      to { translate: 20px -18px; rotate: 4deg; }
+    }
+
     .start-card {
+      position: relative;
+      z-index: 2;
       width: min(92vw, 560px);
-      min-height: min(72vh, 620px);
+      min-height: min(72svh, 620px);
       display: grid;
       place-items: center;
-      padding: 34px;
-      border: 1px solid rgba(23,23,23,.08);
-      border-radius: 38px;
-      background: var(--card);
-      backdrop-filter: blur(22px);
-      box-shadow: 0 30px 80px rgba(23,23,23,.12);
+      padding: 34px 22px;
+      border: 2px solid rgba(255,255,255,.6);
+      border-radius: 42px;
+      background: rgba(255,255,255,.16);
+      backdrop-filter: blur(26px) saturate(1.35);
+      box-shadow:
+        0 34px 90px rgba(60,0,90,.34),
+        inset 0 1px 0 rgba(255,255,255,.65),
+        0 0 45px rgba(255,255,255,.18);
       text-align: center;
     }
 
     .eyebrow {
-      margin-bottom: 32px;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .28em;
+      margin-bottom: 34px;
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .22em;
       text-transform: uppercase;
-      opacity: .45;
+      text-shadow: 0 2px 14px rgba(74,0,90,.45);
     }
 
     .press-button {
       position: relative;
-      width: min(68vw, 310px);
+      width: min(70vw, 315px);
       aspect-ratio: 1;
-      border: 0;
+      border: 4px solid rgba(255,255,255,.85);
       border-radius: 50%;
       cursor: pointer;
       color: white;
       background:
-        radial-gradient(circle at 34% 25%, rgba(255,255,255,.72), transparent 17%),
-        linear-gradient(145deg, #ff6b4d, var(--accent) 48%, var(--accent-dark));
+        radial-gradient(circle at 35% 24%, rgba(255,255,255,.92), transparent 14%),
+        radial-gradient(circle at 50% 55%, #ff80ec 0, #ff2fc7 43%, #b30095 100%);
       box-shadow:
-        0 24px 0 #b92b12,
-        0 38px 70px rgba(217,54,24,.34),
-        inset 0 4px 12px rgba(255,255,255,.48),
-        inset 0 -12px 18px rgba(115,19,5,.25);
+        0 25px 0 #83006d,
+        0 35px 70px rgba(104,0,112,.48),
+        0 0 0 14px rgba(255,255,255,.2),
+        0 0 55px rgba(255,255,255,.6),
+        inset 0 5px 18px rgba(255,255,255,.75),
+        inset 0 -14px 22px rgba(92,0,79,.35);
       transform: translateY(-8px);
       transition: transform .12s ease, box-shadow .12s ease, filter .2s ease;
       -webkit-tap-highlight-color: transparent;
@@ -105,10 +125,10 @@
     .press-button::before {
       content: "";
       position: absolute;
-      inset: -18px;
+      inset: -24px;
       border-radius: 50%;
-      border: 2px solid rgba(255,75,43,.2);
-      animation: pulse 1.8s ease-out infinite;
+      border: 4px dashed rgba(255,255,255,.72);
+      animation: spin 8s linear infinite;
     }
 
     .press-button::after {
@@ -116,108 +136,133 @@
       position: absolute;
       inset: 12px;
       border-radius: 50%;
-      border: 1px solid rgba(255,255,255,.3);
+      border: 2px solid rgba(255,255,255,.35);
     }
 
-    @keyframes pulse {
-      0% { transform: scale(.92); opacity: 0; }
-      28% { opacity: 1; }
-      100% { transform: scale(1.16); opacity: 0; }
-    }
-
-    .press-button:hover { filter: saturate(1.08) brightness(1.03); }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .press-button:active,
     .press-button.pressed {
-      transform: translateY(14px) scale(.985);
+      transform: translateY(15px) scale(.985);
       box-shadow:
-        0 5px 0 #b92b12,
-        0 18px 34px rgba(217,54,24,.26),
-        inset 0 4px 12px rgba(255,255,255,.34),
-        inset 0 -8px 14px rgba(115,19,5,.28);
+        0 4px 0 #83006d,
+        0 18px 34px rgba(104,0,112,.38),
+        0 0 0 14px rgba(255,255,255,.16),
+        0 0 42px rgba(255,255,255,.5),
+        inset 0 5px 18px rgba(255,255,255,.58),
+        inset 0 -10px 16px rgba(92,0,79,.38);
     }
 
     .button-text {
       position: relative;
       z-index: 2;
       display: block;
-      font-size: clamp(30px, 8vw, 54px);
-      font-weight: 950;
-      letter-spacing: -.05em;
-      line-height: .95;
-      text-shadow: 0 3px 0 rgba(92,18,5,.18);
+      font-size: clamp(32px, 8vw, 56px);
+      font-weight: 1000;
+      letter-spacing: -.055em;
+      line-height: .92;
+      text-shadow: 0 4px 0 rgba(105,0,87,.32), 0 0 18px rgba(255,255,255,.35);
     }
 
     .hint {
-      margin-top: 46px;
-      font-size: 15px;
-      font-weight: 650;
-      opacity: .5;
+      margin-top: 48px;
+      font-size: 16px;
+      font-weight: 850;
+      text-shadow: 0 2px 14px rgba(65,0,90,.42);
     }
 
     #revealScreen {
-      background: #111;
-      color: #fff;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(255,45,205,.45), transparent 27%),
+        radial-gradient(circle at 86% 22%, rgba(52,223,255,.35), transparent 28%),
+        radial-gradient(circle at 72% 82%, rgba(255,237,65,.28), transparent 24%),
+        linear-gradient(135deg, #16001f, #2c0647 48%, #07182b);
       overflow: hidden;
+    }
+
+    #revealScreen::before {
+      content: "";
+      position: fixed;
+      inset: -40%;
+      background: conic-gradient(from 0deg, transparent, rgba(255,48,205,.18), transparent, rgba(45,219,255,.16), transparent, rgba(255,230,56,.14), transparent);
+      animation: spin 10s linear infinite;
+      pointer-events: none;
     }
 
     .reveal-wrap {
       position: relative;
       z-index: 2;
-      width: min(94vw, 1100px);
+      width: 100%;
       min-height: 100svh;
       display: grid;
       place-items: center;
-      padding: 28px 18px;
+      padding: 30px 10px;
+      overflow: visible;
+    }
+
+    .final-stage {
+      width: calc(100vw - 20px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: visible;
     }
 
     .final-text {
-      display: flex;
-      flex-wrap: wrap;
+      display: inline-flex;
+      flex-wrap: nowrap;
       justify-content: center;
       align-items: flex-end;
-      gap: .05em;
-      max-width: 100%;
-      text-align: center;
-      font-size: clamp(38px, 10vw, 112px);
+      white-space: nowrap;
+      gap: 0;
+      width: max-content;
+      max-width: none;
+      transform-origin: center center;
+      font-size: clamp(54px, 10vw, 118px);
       font-weight: 1000;
-      line-height: .92;
-      letter-spacing: -.065em;
+      line-height: .9;
+      letter-spacing: -.072em;
       text-transform: uppercase;
-      text-wrap: balance;
-      filter: drop-shadow(0 12px 30px rgba(0,0,0,.42));
+      filter: drop-shadow(0 12px 24px rgba(0,0,0,.55));
     }
 
     .letter {
       display: inline-block;
-      min-width: .34em;
+      flex: 0 0 auto;
       opacity: 0;
-      transform: translateY(-120vh) rotate(var(--rot)) scale(.72);
-      color: hsl(var(--hue) 92% 62%);
+      transform: translate(var(--x), -125vh) rotate(var(--rot)) scale(.62);
+      color: hsl(var(--hue) 100% 67%);
+      text-shadow:
+        0 0 8px currentColor,
+        0 0 22px currentColor,
+        0 4px 0 rgba(255,255,255,.18);
       transition: none;
     }
 
-    .letter.space { min-width: .28em; }
+    .letter.space {
+      width: .27em;
+      min-width: .27em;
+    }
 
     .letter.drop {
-      animation: letterDrop .74s cubic-bezier(.18,.72,.22,1.22) forwards;
+      animation: letterDrop .9s cubic-bezier(.15,.72,.18,1.2) forwards;
     }
 
     @keyframes letterDrop {
       0% {
         opacity: 0;
-        transform: translateY(-120vh) rotate(var(--rot)) scale(.72);
+        transform: translate(var(--x), -125vh) rotate(var(--rot)) scale(.62);
       }
-      72% {
+      70% {
         opacity: 1;
-        transform: translateY(7px) rotate(calc(var(--rot) * -.12)) scale(1.04);
+        transform: translate(calc(var(--x) * .04), 11px) rotate(calc(var(--rot) * -.10)) scale(1.06);
       }
-      86% {
-        transform: translateY(-4px) rotate(0deg) scale(.99);
+      84% {
+        transform: translate(0, -5px) rotate(2deg) scale(.985);
       }
       100% {
         opacity: 1;
-        transform: translateY(0) rotate(0deg) scale(1);
+        transform: translate(0, 0) rotate(0deg) scale(1);
       }
     }
 
@@ -225,12 +270,12 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      background: white;
+      background: linear-gradient(135deg, #ff4fd8, #fff36b, #4de7ff);
       opacity: 0;
       z-index: 5;
     }
 
-    .flash.active { animation: flash .42s ease-out; }
+    .flash.active { animation: flash .5s ease-out; }
 
     @keyframes flash {
       0% { opacity: .95; }
@@ -239,32 +284,34 @@
 
     .restart {
       position: fixed;
+      z-index: 6;
       left: 50%;
       bottom: max(22px, env(safe-area-inset-bottom));
       transform: translateX(-50%) translateY(20px);
-      border: 1px solid rgba(255,255,255,.18);
+      border: 2px solid rgba(255,255,255,.55);
       border-radius: 999px;
-      padding: 12px 18px;
+      padding: 13px 22px;
       color: white;
-      background: rgba(255,255,255,.08);
-      backdrop-filter: blur(10px);
+      background: linear-gradient(135deg, rgba(255,57,208,.75), rgba(103,75,255,.75));
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.3), 0 0 24px rgba(255,67,220,.35);
       font: inherit;
-      font-weight: 750;
+      font-weight: 900;
       opacity: 0;
       pointer-events: none;
       transition: .35s ease;
     }
 
     .restart.show {
-      opacity: .72;
+      opacity: 1;
       transform: translateX(-50%) translateY(0);
       pointer-events: auto;
     }
 
     @media (max-width: 480px) {
-      .start-card { min-height: 70svh; border-radius: 30px; }
+      .start-card { min-height: 72svh; border-radius: 32px; }
       .press-button { width: min(72vw, 285px); }
-      .final-text { font-size: clamp(34px, 12vw, 66px); }
+      .final-text { font-size: 72px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -276,20 +323,22 @@
   <section id="startScreen" class="screen">
     <div class="start-card">
       <div>
-        <div class="eyebrow">Tev tas ir jāizdara</div>
+        <div class="eyebrow">Šī poga grib, lai tu viņu nospied</div>
         <button id="pressButton" class="press-button" aria-label="Spied šeit">
           <span class="button-text">SPIED<br>ŠEIT</span>
         </button>
-        <div class="hint">Nospied. Nekas slikts nenotiks.</div>
+        <div class="hint">Nu spied taču ✨</div>
       </div>
     </div>
   </section>
 
   <section id="revealScreen" class="screen hidden" aria-live="polite">
     <div class="reveal-wrap">
-      <div id="finalText" class="final-text"></div>
+      <div class="final-stage">
+        <div id="finalText" class="final-text"></div>
+      </div>
     </div>
-    <button id="restart" class="restart">Vēlreiz</button>
+    <button id="restart" class="restart">VĒLREIZ ✨</button>
   </section>
 
   <div id="flash" class="flash"></div>
@@ -305,6 +354,22 @@
 
     let audioCtx;
     let running = false;
+
+    function graphemes(text) {
+      if (window.Intl && Intl.Segmenter) {
+        return [...new Intl.Segmenter('lv', { granularity: 'grapheme' }).segment(text)].map(item => item.segment);
+      }
+      return Array.from(text);
+    }
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
 
     function tone(freq, duration, type = 'sine', volume = 0.05, delay = 0) {
       try {
@@ -324,30 +389,44 @@
     }
 
     function clickSound() {
-      tone(95, .12, 'square', .08);
-      tone(54, .22, 'sine', .12, .03);
+      tone(120, .12, 'square', .07);
+      tone(70, .24, 'sine', .10, .02);
     }
 
     function dropSound(index) {
-      const scale = [220, 247, 277, 330, 370, 415];
-      tone(scale[index % scale.length], .11, 'triangle', .035);
+      const notes = [247, 294, 330, 392, 440, 523, 587];
+      tone(notes[index % notes.length], .13, 'triangle', .035);
     }
 
     function finishSound() {
-      [262, 330, 392, 523].forEach((f, i) => tone(f, .45, 'sine', .045, i * .055));
+      [262, 330, 392, 523, 659].forEach((freq, index) => tone(freq, .5, 'sine', .04, index * .045));
+    }
+
+    function fitText() {
+      finalText.style.transform = 'scale(1)';
+      const available = window.innerWidth - 22;
+      const natural = finalText.scrollWidth;
+      const scale = Math.min(1, available / natural);
+      finalText.style.transform = `scale(${scale})`;
     }
 
     function buildLetters() {
       finalText.innerHTML = '';
-      Array.from(message).forEach((char, index) => {
+      const chars = graphemes(message);
+
+      chars.forEach((char, index) => {
         const span = document.createElement('span');
         span.className = 'letter' + (char === ' ' ? ' space' : '');
         span.textContent = char === ' ' ? '\u00A0' : char;
-        span.style.setProperty('--rot', `${(Math.random() * 70 - 35).toFixed(1)}deg`);
+        span.style.setProperty('--rot', `${(Math.random() * 160 - 80).toFixed(1)}deg`);
+        span.style.setProperty('--x', `${Math.round(Math.random() * 180 - 90)}vw`);
         span.style.setProperty('--hue', Math.floor(Math.random() * 360));
         span.dataset.index = index;
         finalText.appendChild(span);
       });
+
+      requestAnimationFrame(fitText);
+      return [...finalText.children];
     }
 
     async function reveal() {
@@ -356,28 +435,33 @@
       pressButton.classList.add('pressed');
       clickSound();
 
-      await new Promise(r => setTimeout(r, 170));
+      await new Promise(resolve => setTimeout(resolve, 170));
       startScreen.classList.add('hidden');
       revealScreen.classList.remove('hidden');
       flash.classList.add('active');
-      setTimeout(() => flash.classList.remove('active'), 450);
+      setTimeout(() => flash.classList.remove('active'), 520);
 
-      buildLetters();
-      const letters = [...finalText.children];
+      const letters = buildLetters();
+      const fallingOrder = shuffle(letters.filter(letter => !letter.classList.contains('space')));
+      const spaces = letters.filter(letter => letter.classList.contains('space'));
+      spaces.forEach(space => {
+        space.style.opacity = '1';
+        space.style.transform = 'none';
+      });
 
-      letters.forEach((letter, i) => {
+      fallingOrder.forEach((letter, orderIndex) => {
         setTimeout(() => {
           letter.classList.add('drop');
-          if (!letter.classList.contains('space')) dropSound(i);
+          dropSound(orderIndex);
 
-          if (i === letters.length - 1) {
+          if (orderIndex === fallingOrder.length - 1) {
             setTimeout(() => {
               finishSound();
               restart.classList.add('show');
               running = false;
-            }, 760);
+            }, 900);
           }
-        }, 130 + i * 145);
+        }, 120 + orderIndex * 135);
       });
     }
 
@@ -387,11 +471,15 @@
       startScreen.classList.remove('hidden');
       pressButton.classList.remove('pressed');
       finalText.innerHTML = '';
+      finalText.style.transform = 'scale(1)';
       running = false;
     }
 
     pressButton.addEventListener('click', reveal);
     restart.addEventListener('click', reset);
+    window.addEventListener('resize', () => {
+      if (finalText.children.length) fitText();
+    });
   </script>
 </body>
 </html>
