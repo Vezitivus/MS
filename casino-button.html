@@ -2,376 +2,396 @@
 <html lang="lv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lielā poga</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f1ea" />
+  <title>Spied šeit</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     :root {
-      --gold: #ffd76a;
-      --gold-dark: #9c6400;
-      --red: #ef233c;
-      --red-dark: #7f0014;
-      --black: #050505;
+      --bg: #f5f1ea;
+      --ink: #171717;
+      --accent: #ff4b2b;
+      --accent-dark: #d93618;
+      --card: rgba(255,255,255,.72);
     }
 
-    body {
+    * { box-sizing: border-box; }
+
+    html, body {
       margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
+      width: 100%;
+      min-height: 100%;
       overflow: hidden;
-      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-      color: white;
-      background:
-        radial-gradient(circle at 50% 35%, rgba(124, 0, 20, 0.58), transparent 34%),
-        repeating-conic-gradient(from 0deg, #101010 0deg 10deg, #050505 10deg 20deg);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
     }
 
     body::before {
       content: "";
       position: fixed;
-      inset: 0;
-      pointer-events: none;
+      inset: -30%;
       background:
-        radial-gradient(circle at 15% 20%, rgba(255, 215, 106, 0.18), transparent 20%),
-        radial-gradient(circle at 85% 80%, rgba(239, 35, 60, 0.16), transparent 22%);
-      animation: ambient 4s ease-in-out infinite alternate;
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.95), transparent 30%),
+        radial-gradient(circle at 75% 70%, rgba(255,75,43,.12), transparent 28%);
+      animation: drift 9s ease-in-out infinite alternate;
+      pointer-events: none;
     }
 
-    .machine {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 34px;
-      width: min(92vw, 680px);
-      padding: 42px 24px 56px;
-      border: 3px solid rgba(255, 215, 106, 0.7);
-      border-radius: 42px;
-      background: linear-gradient(145deg, rgba(30, 30, 30, 0.96), rgba(4, 4, 4, 0.98));
-      box-shadow:
-        0 0 30px rgba(255, 190, 45, 0.35),
-        inset 0 0 40px rgba(255, 255, 255, 0.05),
-        0 30px 80px rgba(0, 0, 0, 0.75);
+    @keyframes drift {
+      to { transform: translate3d(3%, -2%, 0) scale(1.04); }
     }
 
-    .machine::before {
-      content: "JACKPOT";
-      position: absolute;
-      top: -25px;
-      padding: 8px 34px;
-      border: 3px solid var(--gold);
-      border-radius: 999px;
-      font-size: clamp(22px, 5vw, 36px);
-      letter-spacing: 5px;
-      color: var(--gold);
-      background: #15100a;
-      text-shadow: 0 0 8px #ffbf00, 0 0 18px #ff7b00;
-      box-shadow: 0 0 24px rgba(255, 188, 0, 0.7);
-      animation: titleFlash 1.15s steps(2) infinite;
-    }
-
-    .lights {
-      display: flex;
-      gap: 18px;
-      margin-top: 6px;
-    }
-
-    .light {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--gold);
-      box-shadow: 0 0 9px var(--gold), 0 0 22px var(--gold);
-      animation: blink 0.9s infinite alternate;
-    }
-
-    .light:nth-child(2) { animation-delay: 0.18s; }
-    .light:nth-child(3) { animation-delay: 0.36s; }
-    .light:nth-child(4) { animation-delay: 0.54s; }
-    .light:nth-child(5) { animation-delay: 0.72s; }
-
-    .button-wrap {
-      position: relative;
-      width: min(70vw, 330px);
-      aspect-ratio: 1;
+    .screen {
+      position: fixed;
+      inset: 0;
       display: grid;
       place-items: center;
-      border-radius: 50%;
-      background:
-        conic-gradient(from 0deg, #fff2a5, #9c6400, #ffe78b, #8b5400, #fff2a5);
-      padding: 17px;
-      box-shadow:
-        0 0 0 8px #1b1307,
-        0 0 0 13px #d79a16,
-        0 0 30px rgba(255, 203, 71, 0.8),
-        0 25px 0 #674100,
-        0 36px 35px rgba(0, 0, 0, 0.85);
-      animation: halo 1.25s ease-in-out infinite alternate;
+      padding: 24px;
+      transition: opacity .45s ease, transform .45s ease, visibility .45s;
     }
 
-    .button-wrap::before {
-      content: "";
-      position: absolute;
-      inset: -17px;
-      border-radius: 50%;
-      background: repeating-conic-gradient(
-        from 0deg,
-        transparent 0deg 10deg,
-        rgba(255, 245, 179, 0.95) 10deg 14deg,
-        transparent 14deg 24deg
-      );
-      filter: drop-shadow(0 0 10px #ffd34d);
-      animation: rotate 5s linear infinite;
-      z-index: -1;
+    .screen.hidden {
+      opacity: 0;
+      transform: scale(1.035);
+      visibility: hidden;
+      pointer-events: none;
     }
 
-    #casinoButton {
-      width: 100%;
-      height: 100%;
+    .start-card {
+      width: min(92vw, 560px);
+      min-height: min(72vh, 620px);
+      display: grid;
+      place-items: center;
+      padding: 34px;
+      border: 1px solid rgba(23,23,23,.08);
+      border-radius: 38px;
+      background: var(--card);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 30px 80px rgba(23,23,23,.12);
+      text-align: center;
+    }
+
+    .eyebrow {
+      margin-bottom: 32px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+      opacity: .45;
+    }
+
+    .press-button {
+      position: relative;
+      width: min(68vw, 310px);
+      aspect-ratio: 1;
       border: 0;
       border-radius: 50%;
       cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
       color: white;
-      font: inherit;
-      font-size: clamp(32px, 8vw, 64px);
-      letter-spacing: 3px;
-      text-transform: uppercase;
       background:
-        radial-gradient(circle at 36% 26%, #ff8794 0 8%, transparent 24%),
-        radial-gradient(circle at 50% 36%, #ff324c, #c70020 55%, #680011 100%);
-      text-shadow:
-        0 3px 0 #760013,
-        0 0 8px white,
-        0 0 18px #ffacb7;
+        radial-gradient(circle at 34% 25%, rgba(255,255,255,.72), transparent 17%),
+        linear-gradient(145deg, #ff6b4d, var(--accent) 48%, var(--accent-dark));
       box-shadow:
-        inset 0 10px 18px rgba(255, 255, 255, 0.5),
-        inset 0 -18px 25px rgba(72, 0, 8, 0.85),
-        0 12px 0 var(--red-dark),
-        0 18px 18px rgba(0, 0, 0, 0.7),
-        0 0 30px rgba(255, 25, 67, 0.8);
-      transition: transform 0.09s ease, box-shadow 0.09s ease, filter 0.15s ease;
+        0 24px 0 #b92b12,
+        0 38px 70px rgba(217,54,24,.34),
+        inset 0 4px 12px rgba(255,255,255,.48),
+        inset 0 -12px 18px rgba(115,19,5,.25);
+      transform: translateY(-8px);
+      transition: transform .12s ease, box-shadow .12s ease, filter .2s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
-    #casinoButton:hover {
-      filter: brightness(1.18) saturate(1.15);
+    .press-button::before {
+      content: "";
+      position: absolute;
+      inset: -18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,75,43,.2);
+      animation: pulse 1.8s ease-out infinite;
     }
 
-    #casinoButton:active,
-    #casinoButton.pressed {
-      transform: translateY(11px) scale(0.97);
+    .press-button::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(.92); opacity: 0; }
+      28% { opacity: 1; }
+      100% { transform: scale(1.16); opacity: 0; }
+    }
+
+    .press-button:hover { filter: saturate(1.08) brightness(1.03); }
+
+    .press-button:active,
+    .press-button.pressed {
+      transform: translateY(14px) scale(.985);
       box-shadow:
-        inset 0 7px 16px rgba(255, 255, 255, 0.35),
-        inset 0 -12px 20px rgba(72, 0, 8, 0.9),
-        0 2px 0 var(--red-dark),
-        0 7px 12px rgba(0, 0, 0, 0.72),
-        0 0 45px rgba(255, 25, 67, 1);
+        0 5px 0 #b92b12,
+        0 18px 34px rgba(217,54,24,.26),
+        inset 0 4px 12px rgba(255,255,255,.34),
+        inset 0 -8px 14px rgba(115,19,5,.28);
     }
 
-    #message {
-      min-height: 90px;
-      margin: 0;
+    .button-text {
+      position: relative;
+      z-index: 2;
+      display: block;
+      font-size: clamp(30px, 8vw, 54px);
+      font-weight: 950;
+      letter-spacing: -.05em;
+      line-height: .95;
+      text-shadow: 0 3px 0 rgba(92,18,5,.18);
+    }
+
+    .hint {
+      margin-top: 46px;
+      font-size: 15px;
+      font-weight: 650;
+      opacity: .5;
+    }
+
+    #revealScreen {
+      background: #111;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .reveal-wrap {
+      position: relative;
+      z-index: 2;
+      width: min(94vw, 1100px);
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 28px 18px;
+    }
+
+    .final-text {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-end;
+      gap: .05em;
+      max-width: 100%;
       text-align: center;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: clamp(29px, 7vw, 58px);
+      font-size: clamp(38px, 10vw, 112px);
       font-weight: 1000;
-      line-height: 1.05;
-      color: white;
+      line-height: .92;
+      letter-spacing: -.065em;
+      text-transform: uppercase;
+      text-wrap: balance;
+      filter: drop-shadow(0 12px 30px rgba(0,0,0,.42));
+    }
+
+    .letter {
+      display: inline-block;
+      min-width: .34em;
       opacity: 0;
-      transform: scale(0.4) rotate(-7deg);
-      text-shadow:
-        0 0 6px white,
-        0 0 14px #ffca3a,
-        0 0 30px #ef233c,
-        5px 5px 0 #6e0012;
+      transform: translateY(-120vh) rotate(var(--rot)) scale(.72);
+      color: hsl(var(--hue) 92% 62%);
+      transition: none;
     }
 
-    #message.show {
-      animation: messagePop 0.65s cubic-bezier(.14, 1.55, .42, 1) forwards,
-                 messageGlow 0.75s ease-in-out 0.65s infinite alternate;
+    .letter.space { min-width: .28em; }
+
+    .letter.drop {
+      animation: letterDrop .74s cubic-bezier(.18,.72,.22,1.22) forwards;
     }
 
-    .confetti {
+    @keyframes letterDrop {
+      0% {
+        opacity: 0;
+        transform: translateY(-120vh) rotate(var(--rot)) scale(.72);
+      }
+      72% {
+        opacity: 1;
+        transform: translateY(7px) rotate(calc(var(--rot) * -.12)) scale(1.04);
+      }
+      86% {
+        transform: translateY(-4px) rotate(0deg) scale(.99);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg) scale(1);
+      }
+    }
+
+    .flash {
       position: fixed;
-      top: -24px;
-      width: 11px;
-      height: 20px;
+      inset: 0;
       pointer-events: none;
-      border-radius: 2px;
-      animation: fall linear forwards;
-      z-index: 10;
+      background: white;
+      opacity: 0;
+      z-index: 5;
     }
 
-    .screen-shake {
-      animation: shake 0.38s linear;
+    .flash.active { animation: flash .42s ease-out; }
+
+    @keyframes flash {
+      0% { opacity: .95; }
+      100% { opacity: 0; }
     }
 
-    @keyframes ambient {
-      to { filter: brightness(1.35); }
+    .restart {
+      position: fixed;
+      left: 50%;
+      bottom: max(22px, env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(20px);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      padding: 12px 18px;
+      color: white;
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(10px);
+      font: inherit;
+      font-weight: 750;
+      opacity: 0;
+      pointer-events: none;
+      transition: .35s ease;
     }
 
-    @keyframes titleFlash {
-      50% { opacity: 0.72; }
+    .restart.show {
+      opacity: .72;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
     }
 
-    @keyframes blink {
-      from { opacity: 0.3; transform: scale(0.8); }
-      to { opacity: 1; transform: scale(1.2); }
+    @media (max-width: 480px) {
+      .start-card { min-height: 70svh; border-radius: 30px; }
+      .press-button { width: min(72vw, 285px); }
+      .final-text { font-size: clamp(34px, 12vw, 66px); }
     }
 
-    @keyframes halo {
-      from { filter: brightness(0.9); }
-      to { filter: brightness(1.25); }
-    }
-
-    @keyframes rotate {
-      to { transform: rotate(360deg); }
-    }
-
-    @keyframes messagePop {
-      0% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
-      58% { opacity: 1; transform: scale(1.18) rotate(3deg); }
-      100% { opacity: 1; transform: scale(1) rotate(0deg); }
-    }
-
-    @keyframes messageGlow {
-      to { filter: brightness(1.35); transform: scale(1.035); }
-    }
-
-    @keyframes fall {
-      to {
-        transform: translate3d(var(--drift), 115vh, 0) rotate(900deg);
-        opacity: 0.15;
-      }
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translate(0, 0); }
-      20% { transform: translate(-8px, 5px); }
-      40% { transform: translate(8px, -5px); }
-      60% { transform: translate(-6px, -2px); }
-      80% { transform: translate(6px, 3px); }
-    }
-
-    @media (max-width: 500px) {
-      .machine {
-        gap: 27px;
-        padding-top: 38px;
-        padding-bottom: 35px;
-        border-radius: 30px;
-      }
-
-      .button-wrap {
-        width: min(72vw, 290px);
-      }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
     }
   </style>
 </head>
 <body>
-  <main class="machine" id="machine">
-    <div class="lights" aria-hidden="true">
-      <span class="light"></span>
-      <span class="light"></span>
-      <span class="light"></span>
-      <span class="light"></span>
-      <span class="light"></span>
+  <section id="startScreen" class="screen">
+    <div class="start-card">
+      <div>
+        <div class="eyebrow">Tev tas ir jāizdara</div>
+        <button id="pressButton" class="press-button" aria-label="Spied šeit">
+          <span class="button-text">SPIED<br>ŠEIT</span>
+        </button>
+        <div class="hint">Nospied. Nekas slikts nenotiks.</div>
+      </div>
     </div>
+  </section>
 
-    <div class="button-wrap">
-      <button id="casinoButton" type="button" aria-label="Nospied lielo pogu">SPIED</button>
+  <section id="revealScreen" class="screen hidden" aria-live="polite">
+    <div class="reveal-wrap">
+      <div id="finalText" class="final-text"></div>
     </div>
+    <button id="restart" class="restart">Vēlreiz</button>
+  </section>
 
-    <p id="message" aria-live="polite"></p>
-  </main>
+  <div id="flash" class="flash"></div>
 
   <script>
-    const button = document.getElementById('casinoButton');
-    const message = document.getElementById('message');
-    const machine = document.getElementById('machine');
+    const message = 'SŪKĀ LIKO APDAUZĪTO 🖕🏻';
+    const startScreen = document.getElementById('startScreen');
+    const revealScreen = document.getElementById('revealScreen');
+    const pressButton = document.getElementById('pressButton');
+    const finalText = document.getElementById('finalText');
+    const restart = document.getElementById('restart');
+    const flash = document.getElementById('flash');
 
-    let audioContext;
+    let audioCtx;
+    let running = false;
 
-    function getAudioContext() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      return audioContext;
+    function tone(freq, duration, type = 'sine', volume = 0.05, delay = 0) {
+      try {
+        audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const start = audioCtx.currentTime + delay;
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + duration + 0.03);
+      } catch (_) {}
     }
 
-    function playTone(frequency, start, duration, type = 'sine', volume = 0.18) {
-      const ctx = getAudioContext();
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, ctx.currentTime + start);
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + start + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + duration);
-
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start(ctx.currentTime + start);
-      oscillator.stop(ctx.currentTime + start + duration + 0.03);
+    function clickSound() {
+      tone(95, .12, 'square', .08);
+      tone(54, .22, 'sine', .12, .03);
     }
 
-    function playCasinoSound() {
-      const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
-      notes.forEach((note, index) => {
-        playTone(note, index * 0.075, 0.22, 'square', 0.11);
-        playTone(note / 2, index * 0.075, 0.28, 'triangle', 0.08);
+    function dropSound(index) {
+      const scale = [220, 247, 277, 330, 370, 415];
+      tone(scale[index % scale.length], .11, 'triangle', .035);
+    }
+
+    function finishSound() {
+      [262, 330, 392, 523].forEach((f, i) => tone(f, .45, 'sine', .045, i * .055));
+    }
+
+    function buildLetters() {
+      finalText.innerHTML = '';
+      Array.from(message).forEach((char, index) => {
+        const span = document.createElement('span');
+        span.className = 'letter' + (char === ' ' ? ' space' : '');
+        span.textContent = char === ' ' ? '\u00A0' : char;
+        span.style.setProperty('--rot', `${(Math.random() * 70 - 35).toFixed(1)}deg`);
+        span.style.setProperty('--hue', Math.floor(Math.random() * 360));
+        span.dataset.index = index;
+        finalText.appendChild(span);
       });
-
-      setTimeout(() => {
-        playTone(180, 0, 0.18, 'sawtooth', 0.2);
-        playTone(90, 0.06, 0.34, 'square', 0.15);
-      }, 360);
     }
 
-    function createConfetti() {
-      const colors = ['#ffd60a', '#ff0054', '#00f5d4', '#ffffff', '#ff7b00', '#8aff00'];
+    async function reveal() {
+      if (running) return;
+      running = true;
+      pressButton.classList.add('pressed');
+      clickSound();
 
-      for (let i = 0; i < 85; i++) {
-        const piece = document.createElement('span');
-        piece.className = 'confetti';
-        piece.style.left = Math.random() * 100 + 'vw';
-        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.animationDuration = (1.7 + Math.random() * 1.8) + 's';
-        piece.style.animationDelay = (Math.random() * 0.22) + 's';
-        piece.style.setProperty('--drift', ((Math.random() - 0.5) * 280) + 'px');
-        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
-        document.body.appendChild(piece);
-        piece.addEventListener('animationend', () => piece.remove());
-      }
+      await new Promise(r => setTimeout(r, 170));
+      startScreen.classList.add('hidden');
+      revealScreen.classList.remove('hidden');
+      flash.classList.add('active');
+      setTimeout(() => flash.classList.remove('active'), 450);
+
+      buildLetters();
+      const letters = [...finalText.children];
+
+      letters.forEach((letter, i) => {
+        setTimeout(() => {
+          letter.classList.add('drop');
+          if (!letter.classList.contains('space')) dropSound(i);
+
+          if (i === letters.length - 1) {
+            setTimeout(() => {
+              finishSound();
+              restart.classList.add('show');
+              running = false;
+            }, 760);
+          }
+        }, 130 + i * 145);
+      });
     }
 
-    button.addEventListener('click', async () => {
-      const ctx = getAudioContext();
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
+    function reset() {
+      restart.classList.remove('show');
+      revealScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+      pressButton.classList.remove('pressed');
+      finalText.innerHTML = '';
+      running = false;
+    }
 
-      button.classList.remove('pressed');
-      message.classList.remove('show');
-      machine.classList.remove('screen-shake');
-      void button.offsetWidth;
-
-      button.classList.add('pressed');
-      machine.classList.add('screen-shake');
-      playCasinoSound();
-
-      setTimeout(() => {
-        button.classList.remove('pressed');
-        message.textContent = 'sukā līko apdauzīto 🖕🏻';
-        message.classList.add('show');
-        createConfetti();
-      }, 420);
-    });
+    pressButton.addEventListener('click', reveal);
+    restart.addEventListener('click', reset);
   </script>
 </body>
 </html>
