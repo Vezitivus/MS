@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lielā poga</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --gold: #ffd76a;
+      --gold-dark: #9c6400;
+      --red: #ef233c;
+      --red-dark: #7f0014;
+      --black: #050505;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      color: white;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(124, 0, 20, 0.58), transparent 34%),
+        repeating-conic-gradient(from 0deg, #101010 0deg 10deg, #050505 10deg 20deg);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(255, 215, 106, 0.18), transparent 20%),
+        radial-gradient(circle at 85% 80%, rgba(239, 35, 60, 0.16), transparent 22%);
+      animation: ambient 4s ease-in-out infinite alternate;
+    }
+
+    .machine {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 34px;
+      width: min(92vw, 680px);
+      padding: 42px 24px 56px;
+      border: 3px solid rgba(255, 215, 106, 0.7);
+      border-radius: 42px;
+      background: linear-gradient(145deg, rgba(30, 30, 30, 0.96), rgba(4, 4, 4, 0.98));
+      box-shadow:
+        0 0 30px rgba(255, 190, 45, 0.35),
+        inset 0 0 40px rgba(255, 255, 255, 0.05),
+        0 30px 80px rgba(0, 0, 0, 0.75);
+    }
+
+    .machine::before {
+      content: "JACKPOT";
+      position: absolute;
+      top: -25px;
+      padding: 8px 34px;
+      border: 3px solid var(--gold);
+      border-radius: 999px;
+      font-size: clamp(22px, 5vw, 36px);
+      letter-spacing: 5px;
+      color: var(--gold);
+      background: #15100a;
+      text-shadow: 0 0 8px #ffbf00, 0 0 18px #ff7b00;
+      box-shadow: 0 0 24px rgba(255, 188, 0, 0.7);
+      animation: titleFlash 1.15s steps(2) infinite;
+    }
+
+    .lights {
+      display: flex;
+      gap: 18px;
+      margin-top: 6px;
+    }
+
+    .light {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 9px var(--gold), 0 0 22px var(--gold);
+      animation: blink 0.9s infinite alternate;
+    }
+
+    .light:nth-child(2) { animation-delay: 0.18s; }
+    .light:nth-child(3) { animation-delay: 0.36s; }
+    .light:nth-child(4) { animation-delay: 0.54s; }
+    .light:nth-child(5) { animation-delay: 0.72s; }
+
+    .button-wrap {
+      position: relative;
+      width: min(70vw, 330px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        conic-gradient(from 0deg, #fff2a5, #9c6400, #ffe78b, #8b5400, #fff2a5);
+      padding: 17px;
+      box-shadow:
+        0 0 0 8px #1b1307,
+        0 0 0 13px #d79a16,
+        0 0 30px rgba(255, 203, 71, 0.8),
+        0 25px 0 #674100,
+        0 36px 35px rgba(0, 0, 0, 0.85);
+      animation: halo 1.25s ease-in-out infinite alternate;
+    }
+
+    .button-wrap::before {
+      content: "";
+      position: absolute;
+      inset: -17px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(
+        from 0deg,
+        transparent 0deg 10deg,
+        rgba(255, 245, 179, 0.95) 10deg 14deg,
+        transparent 14deg 24deg
+      );
+      filter: drop-shadow(0 0 10px #ffd34d);
+      animation: rotate 5s linear infinite;
+      z-index: -1;
+    }
+
+    #casinoButton {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      color: white;
+      font: inherit;
+      font-size: clamp(32px, 8vw, 64px);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background:
+        radial-gradient(circle at 36% 26%, #ff8794 0 8%, transparent 24%),
+        radial-gradient(circle at 50% 36%, #ff324c, #c70020 55%, #680011 100%);
+      text-shadow:
+        0 3px 0 #760013,
+        0 0 8px white,
+        0 0 18px #ffacb7;
+      box-shadow:
+        inset 0 10px 18px rgba(255, 255, 255, 0.5),
+        inset 0 -18px 25px rgba(72, 0, 8, 0.85),
+        0 12px 0 var(--red-dark),
+        0 18px 18px rgba(0, 0, 0, 0.7),
+        0 0 30px rgba(255, 25, 67, 0.8);
+      transition: transform 0.09s ease, box-shadow 0.09s ease, filter 0.15s ease;
+    }
+
+    #casinoButton:hover {
+      filter: brightness(1.18) saturate(1.15);
+    }
+
+    #casinoButton:active,
+    #casinoButton.pressed {
+      transform: translateY(11px) scale(0.97);
+      box-shadow:
+        inset 0 7px 16px rgba(255, 255, 255, 0.35),
+        inset 0 -12px 20px rgba(72, 0, 8, 0.9),
+        0 2px 0 var(--red-dark),
+        0 7px 12px rgba(0, 0, 0, 0.72),
+        0 0 45px rgba(255, 25, 67, 1);
+    }
+
+    #message {
+      min-height: 90px;
+      margin: 0;
+      text-align: center;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: clamp(29px, 7vw, 58px);
+      font-weight: 1000;
+      line-height: 1.05;
+      color: white;
+      opacity: 0;
+      transform: scale(0.4) rotate(-7deg);
+      text-shadow:
+        0 0 6px white,
+        0 0 14px #ffca3a,
+        0 0 30px #ef233c,
+        5px 5px 0 #6e0012;
+    }
+
+    #message.show {
+      animation: messagePop 0.65s cubic-bezier(.14, 1.55, .42, 1) forwards,
+                 messageGlow 0.75s ease-in-out 0.65s infinite alternate;
+    }
+
+    .confetti {
+      position: fixed;
+      top: -24px;
+      width: 11px;
+      height: 20px;
+      pointer-events: none;
+      border-radius: 2px;
+      animation: fall linear forwards;
+      z-index: 10;
+    }
+
+    .screen-shake {
+      animation: shake 0.38s linear;
+    }
+
+    @keyframes ambient {
+      to { filter: brightness(1.35); }
+    }
+
+    @keyframes titleFlash {
+      50% { opacity: 0.72; }
+    }
+
+    @keyframes blink {
+      from { opacity: 0.3; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1.2); }
+    }
+
+    @keyframes halo {
+      from { filter: brightness(0.9); }
+      to { filter: brightness(1.25); }
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes messagePop {
+      0% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+      58% { opacity: 1; transform: scale(1.18) rotate(3deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
+    @keyframes messageGlow {
+      to { filter: brightness(1.35); transform: scale(1.035); }
+    }
+
+    @keyframes fall {
+      to {
+        transform: translate3d(var(--drift), 115vh, 0) rotate(900deg);
+        opacity: 0.15;
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-8px, 5px); }
+      40% { transform: translate(8px, -5px); }
+      60% { transform: translate(-6px, -2px); }
+      80% { transform: translate(6px, 3px); }
+    }
+
+    @media (max-width: 500px) {
+      .machine {
+        gap: 27px;
+        padding-top: 38px;
+        padding-bottom: 35px;
+        border-radius: 30px;
+      }
+
+      .button-wrap {
+        width: min(72vw, 290px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="machine" id="machine">
+    <div class="lights" aria-hidden="true">
+      <span class="light"></span>
+      <span class="light"></span>
+      <span class="light"></span>
+      <span class="light"></span>
+      <span class="light"></span>
+    </div>
+
+    <div class="button-wrap">
+      <button id="casinoButton" type="button" aria-label="Nospied lielo pogu">SPIED</button>
+    </div>
+
+    <p id="message" aria-live="polite"></p>
+  </main>
+
+  <script>
+    const button = document.getElementById('casinoButton');
+    const message = document.getElementById('message');
+    const machine = document.getElementById('machine');
+
+    let audioContext;
+
+    function getAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioContext;
+    }
+
+    function playTone(frequency, start, duration, type = 'sine', volume = 0.18) {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, ctx.currentTime + start);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + duration);
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(ctx.currentTime + start);
+      oscillator.stop(ctx.currentTime + start + duration + 0.03);
+    }
+
+    function playCasinoSound() {
+      const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+      notes.forEach((note, index) => {
+        playTone(note, index * 0.075, 0.22, 'square', 0.11);
+        playTone(note / 2, index * 0.075, 0.28, 'triangle', 0.08);
+      });
+
+      setTimeout(() => {
+        playTone(180, 0, 0.18, 'sawtooth', 0.2);
+        playTone(90, 0.06, 0.34, 'square', 0.15);
+      }, 360);
+    }
+
+    function createConfetti() {
+      const colors = ['#ffd60a', '#ff0054', '#00f5d4', '#ffffff', '#ff7b00', '#8aff00'];
+
+      for (let i = 0; i < 85; i++) {
+        const piece = document.createElement('span');
+        piece.className = 'confetti';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (1.7 + Math.random() * 1.8) + 's';
+        piece.style.animationDelay = (Math.random() * 0.22) + 's';
+        piece.style.setProperty('--drift', ((Math.random() - 0.5) * 280) + 'px');
+        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+        document.body.appendChild(piece);
+        piece.addEventListener('animationend', () => piece.remove());
+      }
+    }
+
+    button.addEventListener('click', async () => {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      button.classList.remove('pressed');
+      message.classList.remove('show');
+      machine.classList.remove('screen-shake');
+      void button.offsetWidth;
+
+      button.classList.add('pressed');
+      machine.classList.add('screen-shake');
+      playCasinoSound();
+
+      setTimeout(() => {
+        button.classList.remove('pressed');
+        message.textContent = 'sukā līko apdauzīto 🖕🏻';
+        message.classList.add('show');
+        createConfetti();
+      }, 420);
+    });
+  </script>
+</body>
+</html>
