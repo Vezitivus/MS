@@ -1,0 +1,43 @@
+name: Build LibreDWG tools
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libpcre2-dev
+      - name: Clone LibreDWG
+        run: git clone --depth 1 --recurse-submodules https://github.com/LibreDWG/libredwg.git src
+      - name: Configure
+        run: cmake -S src -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DDISABLE_WERROR=ON -DENABLE_LTO=OFF -DBUILD_TESTING=OFF -DLIBREDWG_DISABLE_JSON=ON
+      - name: Build tools
+        run: |
+          set +e
+          cmake --build build --target dxf2dwg dwgread dwg2dxf -j2 --verbose 2>&1 | tee build.log
+          echo "build_status=${PIPESTATUS[0]}" >> "$GITHUB_ENV"
+          exit 0
+      - name: Collect tools and SDK
+        run: |
+          mkdir -p tools/sdk
+          find build -type f \( -name dxf2dwg -o -name dwgread -o -name dwg2dxf \) -executable -exec cp -v {} tools/ \;
+          find build -type f -name 'libredwg.a' -exec cp -v {} tools/sdk/ \;
+          cp -r src/include tools/sdk/include
+          cp -r src/src tools/sdk/src
+          cp -r src/programs tools/sdk/programs
+          mkdir -p tools/sdk/build-src
+          cp build/src/config.h tools/sdk/build-src/ 2>/dev/null || true
+          cp build.log tools/
+          ls -lh tools tools/sdk
+      - name: Upload tools and SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: libredwg-tools-sdk-linux
+          path: tools/
+          retention-days: 1

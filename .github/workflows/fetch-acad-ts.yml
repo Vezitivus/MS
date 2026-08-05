@@ -1,0 +1,19 @@
+name: Fetch acad-ts package
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download npm package
+        run: npm pack @node-projects/acad-ts@2.4.0
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: acad-ts-package
+          path: node-projects-acad-ts-2.4.0.tgz
+          retention-days: 1
