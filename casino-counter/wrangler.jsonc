@@ -1,0 +1,13 @@
+{
+  "name": "casino-counter",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-14",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "casino-counter",
+      "database_id": "4ea3d6a4-0771-4c43-9020-c232ee989a95"
+    }
+  ]
+}

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="lv">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#141416" />
+  <meta name="theme-color" content="#050806" />
   <meta name="color-scheme" content="dark" />
-  <title>Spied šeit</title>
+  <title>Press Here</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -14,23 +14,21 @@
       width: 100%;
       min-height: 100%;
       overflow: hidden;
-      background: #141416;
-      color: #f3efe6;
+      background: #050806;
+      color: #f6e7b2;
       font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, Inter, Geist, "Segoe UI", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
-    body {
-      min-height: 100svh;
-    }
+    body { min-height: 100svh; }
 
     .grain {
       position: fixed;
       inset: 0;
       z-index: 20;
       pointer-events: none;
-      opacity: .035;
+      opacity: .045;
       mix-blend-mode: overlay;
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
       background-size: 160px 160px;
@@ -54,9 +52,26 @@
 
     #startScreen {
       background:
-        radial-gradient(ellipse 70% 46% at 50% 38%, #2a2a30 0%, transparent 62%),
-        radial-gradient(ellipse 80% 36% at 50% 100%, #1c1916 0%, transparent 55%),
-        linear-gradient(180deg, #1a1a1e 0%, #121214 55%, #0e0e10 100%);
+        radial-gradient(ellipse 80% 50% at 50% 40%, rgba(16, 70, 42, .42) 0%, transparent 58%),
+        radial-gradient(ellipse 70% 36% at 50% 100%, rgba(80, 20, 10, .28) 0%, transparent 55%),
+        linear-gradient(180deg, #0a100e 0%, #050806 48%, #030504 100%);
+    }
+
+    #startScreen::before,
+    #startScreen::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    #startScreen::before {
+      inset: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+      border: 1px solid rgba(212, 175, 85, .22);
+    }
+
+    #startScreen::after {
+      inset: max(18px, calc(env(safe-area-inset-top) + 4px)) max(18px, calc(env(safe-area-inset-right) + 4px)) max(18px, calc(env(safe-area-inset-bottom) + 4px)) max(18px, calc(env(safe-area-inset-left) + 4px));
+      border: 1px solid rgba(212, 175, 85, .1);
     }
 
     .start-inner {
@@ -69,30 +84,131 @@
       width: min(100%, 420px);
     }
 
+    .counter {
+      margin: 0 0 28px;
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+      transition: opacity .45s ease, transform .45s ease;
+    }
+
+    .counter.show {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    .counter-digits {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      min-height: 1.15em;
+      font-size: 26px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .06em;
+      line-height: 1;
+      color: #f0d176;
+      text-shadow: 0 0 18px rgba(240, 209, 118, .35), 0 1px 0 rgba(80, 50, 0, .45);
+    }
+
+    .digit {
+      display: inline-block;
+      height: 1.15em;
+      overflow: hidden;
+      width: .68em;
+      text-align: center;
+    }
+
+    .digit.comma,
+    .digit.lit {
+      width: auto;
+      min-width: .36em;
+      overflow: visible;
+    }
+
+    .digit-reel {
+      display: block;
+      transition: transform .7s cubic-bezier(.2, .8, .2, 1);
+      will-change: transform;
+    }
+
+    .digit-reel span {
+      display: block;
+      height: 1.15em;
+      line-height: 1.15em;
+    }
+
+    .counter-label {
+      margin-top: 8px;
+      font-size: 9px;
+      font-weight: 620;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: rgba(240, 209, 118, .62);
+    }
+
     .eyebrow,
     .hint {
       margin: 0;
-      color: rgba(237, 232, 222, .62);
-      letter-spacing: .18em;
+      color: rgba(240, 209, 118, .72);
+      letter-spacing: .2em;
       text-transform: uppercase;
-      font-weight: 560;
+      font-weight: 600;
     }
 
     .eyebrow {
       font-size: 11px;
-      margin-bottom: 42px;
+      margin-bottom: 18px;
     }
 
     .hint {
       font-size: 10px;
-      margin-top: 46px;
-      letter-spacing: .2em;
-      color: rgba(237, 232, 222, .4);
+      margin-top: 22px;
+      letter-spacing: .18em;
+      color: rgba(240, 209, 118, .48);
     }
+
+    .deco-rule {
+      width: min(72%, 220px);
+      height: 10px;
+      margin: 8px 0 22px;
+      position: relative;
+    }
+
+    .deco-rule::before,
+    .deco-rule::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: calc(50% - 9px);
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #d4af55);
+    }
+
+    .deco-rule::before { left: 0; transform: translateY(-50%); }
+    .deco-rule::after {
+      right: 0;
+      background: linear-gradient(90deg, #d4af55, transparent);
+      transform: translateY(-50%);
+    }
+
+    .deco-rule i {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border: 1px solid #d4af55;
+      transform: translate(-50%, -50%) rotate(45deg);
+      box-shadow: 0 0 8px rgba(212, 175, 85, .45);
+    }
+
+    .deco-rule.bottom { margin: 22px 0 8px; }
 
     .press-button {
       position: relative;
-      width: min(62vw, 252px);
+      width: min(64vw, 248px);
       aspect-ratio: 1;
       border: 0;
       padding: 0;
@@ -103,53 +219,94 @@
       isolation: isolate;
     }
 
-    .btn-halo {
+    .btn-glow {
       position: absolute;
-      inset: -22%;
+      inset: -24%;
       border-radius: 50%;
       pointer-events: none;
       z-index: 0;
       background:
-        radial-gradient(circle at 50% 50%, rgba(236, 228, 210, .28) 0%, rgba(236, 228, 210, .08) 38%, transparent 68%);
-      animation: haloPulse 3.8s ease-in-out infinite;
+        radial-gradient(circle at 50% 50%, rgba(200, 30, 40, .28) 0%, rgba(212, 175, 85, .2) 32%, transparent 68%);
+      animation: glowPulse 3.6s ease-in-out infinite;
     }
 
-    @keyframes haloPulse {
-      0%, 100% { opacity: .42; transform: scale(.96); }
-      50% { opacity: 1; transform: scale(1.05); }
+    @keyframes glowPulse {
+      0%, 100% { opacity: .55; transform: scale(.96); }
+      50% { opacity: 1; transform: scale(1.06); }
     }
 
-    .btn-well {
+    .sparkle {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff6c8 0%, #d4af55 45%, transparent 70%);
+      pointer-events: none;
+      z-index: 3;
+      animation: twinkle 3.4s ease-in-out infinite;
+    }
+
+    .press-button > .sparkle:nth-child(2) { top: 8%; left: 16%; animation-delay: 0s; }
+    .press-button > .sparkle:nth-child(3) { top: 16%; right: 12%; animation-delay: 1.1s; width: 4px; height: 4px; }
+    .press-button > .sparkle:nth-child(4) { bottom: 18%; left: 10%; animation-delay: 1.8s; width: 3px; height: 3px; }
+    .press-button > .sparkle:nth-child(5) { bottom: 10%; right: 18%; animation-delay: 2.4s; }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: .15; transform: scale(.7); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    .btn-bezel {
       position: absolute;
       inset: 0;
       border-radius: 50%;
       z-index: 1;
       background:
-        linear-gradient(160deg, #3e3e44 0%, #18181c 42%, #0b0b0d 100%);
+        repeating-conic-gradient(
+          from 90deg,
+          #f8e7a8 0deg 4deg,
+          #c8942c 5deg 7deg,
+          #8a5a10 8deg 9deg,
+          #e8c56a 10deg 13deg,
+          #b47a1c 14deg 16deg
+        );
       box-shadow:
-        0 18px 40px rgba(0, 0, 0, .55),
-        inset 0 8px 14px rgba(0, 0, 0, .65),
-        inset 0 -2px 4px rgba(255, 255, 255, .07);
+        0 18px 36px rgba(0, 0, 0, .62),
+        0 0 0 1px rgba(255, 220, 140, .25),
+        0 0 28px rgba(212, 175, 85, .28),
+        inset 0 2px 3px rgba(255, 245, 200, .65),
+        inset 0 -4px 8px rgba(70, 35, 0, .55);
+    }
+
+    .btn-bezel::before {
+      content: "";
+      position: absolute;
+      inset: 7.5%;
+      border-radius: 50%;
+      background: linear-gradient(160deg, #7a4e0e, #2a1604 50%, #5a3a0c);
+      box-shadow:
+        inset 0 6px 10px rgba(0, 0, 0, .65),
+        inset 0 -2px 3px rgba(255, 220, 140, .15);
     }
 
     .btn-face {
       position: absolute;
-      inset: 6.5%;
+      inset: 12.5%;
       z-index: 2;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      color: #2a2722;
+      overflow: hidden;
       background:
-        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, .96) 0 2.5%, rgba(255, 255, 255, .42) 9%, transparent 24%),
-        radial-gradient(circle at 70% 86%, rgba(90, 78, 62, .2), transparent 36%),
-        linear-gradient(165deg, #fffcf7 0%, #ece7dc 26%, #c9c2b4 54%, #e2dcd0 74%, #b7b0a3 100%);
+        radial-gradient(circle at 32% 24%, rgba(255, 255, 255, .9) 0 2.5%, rgba(255, 190, 190, .32) 8%, transparent 24%),
+        radial-gradient(circle at 70% 88%, rgba(40, 0, 0, .45), transparent 40%),
+        radial-gradient(circle at 50% 42%, #e01432 0%, #9a0a1c 46%, #4a050e 78%, #2a0308 100%);
       box-shadow:
-        0 16px 0 #6f6a62,
-        0 22px 28px rgba(0, 0, 0, .4),
-        inset 0 2px 3px rgba(255, 255, 255, .92),
-        inset 0 -12px 18px rgba(80, 70, 54, .22),
-        inset 0 0 0 1px rgba(255, 255, 255, .38);
+        0 14px 0 #5a0a12,
+        0 20px 24px rgba(0, 0, 0, .45),
+        inset 0 3px 4px rgba(255, 230, 230, .45),
+        inset 0 -14px 20px rgba(40, 0, 0, .45),
+        inset 0 0 0 1px rgba(255, 180, 180, .18);
       transform: translateY(-11px);
       transition: transform .15s cubic-bezier(.2, .8, .2, 1), box-shadow .15s ease;
     }
@@ -162,34 +319,44 @@
       height: 36%;
       border-radius: 50%;
       pointer-events: none;
-      background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .12) 58%, transparent 80%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .08) 58%, transparent 80%);
     }
 
-    .btn-face::after {
-      content: "";
+    .btn-shimmer {
       position: absolute;
-      inset: 9%;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, .16);
-      box-shadow: inset 0 0 0 1px rgba(70, 64, 54, .08);
+      top: -20%;
+      left: -60%;
+      width: 45%;
+      height: 140%;
       pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(255, 240, 200, .0), rgba(255, 245, 220, .45), rgba(255, 240, 200, 0), transparent);
+      transform: rotate(20deg);
+      animation: shimmerSweep 5.2s ease-in-out infinite;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes shimmerSweep {
+      0%, 28% { transform: translateX(0) rotate(20deg); opacity: 0; }
+      38% { opacity: .7; }
+      58% { transform: translateX(280%) rotate(20deg); opacity: 0; }
+      100% { transform: translateX(280%) rotate(20deg); opacity: 0; }
     }
 
     .press-button:active .btn-face,
     .press-button.pressed .btn-face {
-      transform: translateY(5px);
+      transform: translateY(4px);
       box-shadow:
-        0 2px 0 #6f6a62,
-        0 8px 14px rgba(0, 0, 0, .32),
-        inset 0 3px 8px rgba(0, 0, 0, .1),
-        inset 0 2px 3px rgba(255, 255, 255, .55),
-        inset 0 -10px 16px rgba(80, 70, 54, .28),
-        inset 0 0 0 1px rgba(255, 255, 255, .28);
+        0 2px 0 #5a0a12,
+        0 8px 12px rgba(0, 0, 0, .35),
+        inset 0 4px 10px rgba(0, 0, 0, .2),
+        inset 0 2px 3px rgba(255, 230, 230, .28),
+        inset 0 -10px 16px rgba(40, 0, 0, .5),
+        inset 0 0 0 1px rgba(255, 180, 180, .12);
     }
 
-    .press-button:active .btn-halo,
-    .press-button.pressed .btn-halo {
-      opacity: .2;
+    .press-button:active .btn-glow,
+    .press-button.pressed .btn-glow {
+      opacity: .25;
       animation: none;
     }
 
@@ -198,20 +365,21 @@
       z-index: 3;
       display: block;
       font-size: clamp(20px, 5.6vw, 26px);
-      font-weight: 650;
-      letter-spacing: .22em;
+      font-weight: 700;
+      letter-spacing: .24em;
       line-height: 1;
-      padding-left: .22em;
+      padding-left: .24em;
+      color: #f6e7b2;
       text-shadow:
-        0 1px 0 rgba(255, 255, 255, .62),
-        0 -1px 0 rgba(60, 50, 40, .2);
+        0 1px 0 rgba(80, 0, 10, .55),
+        0 0 14px rgba(255, 200, 80, .28);
     }
 
     #revealScreen {
       padding: 0;
       background:
-        radial-gradient(ellipse 64% 42% at 50% 48%, #27262c 0%, transparent 64%),
-        linear-gradient(180deg, #161618 0%, #101012 50%, #0c0c0e 100%);
+        radial-gradient(ellipse 64% 42% at 50% 48%, rgba(16, 70, 42, .35) 0%, transparent 64%),
+        linear-gradient(180deg, #0a100e 0%, #050806 50%, #030504 100%);
       overflow: hidden;
     }
 
@@ -247,11 +415,11 @@
       font-weight: 700;
       line-height: 1;
       letter-spacing: 0;
-      color: #f4f0e8;
+      color: #f6efe0;
       text-shadow:
-        0 1px 0 rgba(255, 255, 255, .22),
-        0 14px 36px rgba(0, 0, 0, .5),
-        0 0 48px rgba(244, 240, 232, .1);
+        0 1px 0 rgba(255, 230, 170, .22),
+        0 14px 36px rgba(0, 0, 0, .55),
+        0 0 48px rgba(212, 175, 85, .12);
     }
 
     .letter {
@@ -268,9 +436,7 @@
       margin-right: 0;
     }
 
-    .letter:last-child {
-      margin-right: 0;
-    }
+    .letter:last-child { margin-right: 0; }
 
     .restart {
       position: fixed;
@@ -278,19 +444,19 @@
       left: 50%;
       bottom: max(26px, calc(env(safe-area-inset-bottom) + 12px));
       transform: translateX(-50%) translateY(10px);
-      border: 1px solid rgba(255, 255, 255, .14);
+      border: 1px solid rgba(212, 175, 85, .35);
       border-radius: 999px;
       padding: 12px 24px;
-      color: rgba(243, 239, 230, .88);
-      background: rgba(255, 255, 255, .06);
+      color: #f0d176;
+      background: rgba(12, 16, 12, .55);
       backdrop-filter: blur(16px);
       box-shadow:
-        0 10px 28px rgba(0, 0, 0, .35),
-        inset 0 1px 0 rgba(255, 255, 255, .12);
+        0 10px 28px rgba(0, 0, 0, .4),
+        inset 0 1px 0 rgba(240, 209, 118, .18);
       font: inherit;
       font-size: 11px;
-      font-weight: 620;
-      letter-spacing: .18em;
+      font-weight: 650;
+      letter-spacing: .2em;
       opacity: 0;
       pointer-events: none;
       transition: opacity .45s ease, transform .45s ease, background .15s ease;
@@ -305,19 +471,20 @@
     }
 
     .restart:active {
-      background: rgba(255, 255, 255, .12);
+      background: rgba(212, 175, 85, .16);
       transform: translateX(-50%) translateY(1px) scale(.98);
     }
 
     @media (max-width: 480px) {
-      .eyebrow { margin-bottom: 36px; }
-      .hint { margin-top: 40px; }
-      .press-button { width: min(64vw, 236px); }
+      .counter { margin-bottom: 22px; }
+      .counter-digits { font-size: 24px; }
+      .press-button { width: min(66vw, 236px); }
       .final-text { font-size: 64px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .btn-halo { animation: none; opacity: .7; }
+      .btn-glow, .btn-shimmer, .sparkle { animation: none; }
+      .digit-reel { transition: none; }
       .screen { transition: opacity .2s ease, visibility .2s; }
       .restart { transition: opacity .2s ease, transform .2s ease; }
     }
@@ -326,16 +493,27 @@
 <body>
   <section id="startScreen" class="screen">
     <div class="start-inner">
-      <p class="eyebrow">Šī poga gaida</p>
-      <button id="pressButton" class="press-button" aria-label="Spied šeit">
-        <span class="btn-halo" aria-hidden="true"></span>
-        <span class="btn-well" aria-hidden="true"></span>
+      <div id="counter" class="counter" aria-live="polite">
+        <div id="counterDigits" class="counter-digits">0</div>
+        <div class="counter-label">unique presses</div>
+      </div>
+      <p class="eyebrow">Try your luck</p>
+      <div class="deco-rule" aria-hidden="true"><i></i></div>
+      <button id="pressButton" class="press-button" aria-label="Press here">
+        <span class="btn-glow" aria-hidden="true"></span>
+        <span class="sparkle" aria-hidden="true"></span>
+        <span class="sparkle" aria-hidden="true"></span>
+        <span class="sparkle" aria-hidden="true"></span>
+        <span class="sparkle" aria-hidden="true"></span>
+        <span class="btn-bezel" aria-hidden="true"></span>
         <span class="btn-face">
           <span class="btn-sheen" aria-hidden="true"></span>
-          <span class="button-text">SPIED</span>
+          <span class="btn-shimmer" aria-hidden="true"></span>
+          <span class="button-text">PRESS</span>
         </span>
       </button>
-      <p class="hint">Nospied, kad esi gatavs</p>
+      <div class="deco-rule bottom" aria-hidden="true"><i></i></div>
+      <p class="hint">Fortunes favor the bold</p>
     </div>
   </section>
 
@@ -345,15 +523,15 @@
         <div id="finalText" class="final-text"></div>
       </div>
     </div>
-    <button id="restart" class="restart">VĒLREIZ</button>
+    <button id="restart" class="restart">AGAIN</button>
   </section>
 
   <div class="grain" aria-hidden="true"></div>
 
   <script>
     const message = 'FUGG YOU 🖕🏻';
-    const CHAOS_MS = 1500;
-    const CONVERGE_MS = 1800;
+    const API = 'https://casino-counter.majas-tame.workers.dev';
+    const FLIGHT_MS = 1400;
     const PRESS_MS = 170;
 
     const startScreen = document.getElementById('startScreen');
@@ -361,10 +539,13 @@
     const pressButton = document.getElementById('pressButton');
     const finalText = document.getElementById('finalText');
     const restart = document.getElementById('restart');
+    const counterEl = document.getElementById('counter');
+    const counterDigits = document.getElementById('counterDigits');
 
     let audioCtx;
     let running = false;
     let animFrame = 0;
+    let lastUnique = null;
 
     function reducedMotion() {
       return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -372,7 +553,7 @@
 
     function graphemes(text) {
       if (window.Intl && Intl.Segmenter) {
-        return [...new Intl.Segmenter('lv', { granularity: 'grapheme' }).segment(text)].map(item => item.segment);
+        return [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text)].map(item => item.segment);
       }
       return Array.from(text);
     }
@@ -403,11 +584,6 @@
       tone(54, .28, 'sine', .06, .02);
     }
 
-    function chaosSound() {
-      tone(420, .4, 'triangle', .03, 0, 160);
-      tone(90, .55, 'sine', .045, .02, 48);
-    }
-
     function dropSound(index) {
       const notes = [247, 294, 330, 392, 440, 523, 587];
       tone(notes[index % notes.length], .16, 'triangle', .03);
@@ -415,6 +591,97 @@
 
     function finishSound() {
       [262, 330, 392, 523, 659].forEach((freq, index) => tone(freq, .55, 'sine', .038, index * .05));
+    }
+
+    function visitorId() {
+      try {
+        let id = localStorage.getItem('casino_vid');
+        if (!id) {
+          id = crypto.randomUUID();
+          localStorage.setItem('casino_vid', id);
+        }
+        return id;
+      } catch (_) {
+        return crypto.randomUUID();
+      }
+    }
+
+    function formatCount(n) {
+      return new Intl.NumberFormat('en-US').format(Math.max(0, Math.floor(Number(n) || 0)));
+    }
+
+    function renderCounter(value, animate) {
+      const text = formatCount(value);
+      const previous = lastUnique;
+      lastUnique = value;
+      counterDigits.textContent = '';
+      const fromText = previous == null || !animate ? text : formatCount(previous);
+      const maxLen = Math.max(text.length, fromText.length);
+      const fromPad = fromText.padStart(maxLen, ' ');
+      const toPad = text.padStart(maxLen, ' ');
+
+      for (let i = 0; i < maxLen; i++) {
+        const ch = toPad[i];
+        const span = document.createElement('span');
+        if (ch === ',' || ch === ' ') {
+          span.className = 'digit ' + (ch === ',' ? 'comma' : 'lit');
+          span.textContent = ch === ' ' ? '' : ch;
+          counterDigits.appendChild(span);
+          continue;
+        }
+        if (!/\d/.test(ch)) {
+          span.className = 'digit lit';
+          span.textContent = ch;
+          counterDigits.appendChild(span);
+          continue;
+        }
+        span.className = 'digit';
+        const reel = document.createElement('span');
+        reel.className = 'digit-reel';
+        const startDigit = /\d/.test(fromPad[i]) ? Number(fromPad[i]) : 0;
+        const endDigit = Number(ch);
+        for (let d = 0; d <= 9; d++) {
+          const n = document.createElement('span');
+          n.textContent = String(d);
+          reel.appendChild(n);
+        }
+        span.appendChild(reel);
+        counterDigits.appendChild(span);
+        reel.style.transform = `translateY(${-startDigit * 1.15}em)`;
+        const lock = endDigit;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            reel.style.transform = `translateY(${-lock * 1.15}em)`;
+          });
+        });
+      }
+      counterEl.classList.add('show');
+    }
+
+    async function loadCount() {
+      try {
+        const res = await fetch(`${API}/count`);
+        if (!res.ok) throw new Error('count failed');
+        const data = await res.json();
+        renderCounter(data.unique, false);
+      } catch (_) {
+        counterEl.classList.remove('show');
+      }
+    }
+
+    async function sendPress() {
+      try {
+        const res = await fetch(`${API}/press`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visitor: visitorId() })
+        });
+        if (!res.ok) throw new Error('press failed');
+        const data = await res.json();
+        renderCounter(data.unique, true);
+      } catch (_) {
+        if (lastUnique == null) counterEl.classList.remove('show');
+      }
     }
 
     function fitText() {
@@ -442,21 +709,18 @@
     function buildLetters() {
       finalText.innerHTML = '';
       finalText.style.fontSize = '';
-      const chars = graphemes(message);
-
-      chars.forEach((char) => {
+      graphemes(message).forEach((char) => {
         const span = document.createElement('span');
         span.className = 'letter' + (char === ' ' ? ' space' : '');
         span.textContent = char === ' ' ? '\u00A0' : char;
         finalText.appendChild(span);
       });
-
       fitText();
       return [...finalText.children];
     }
 
     function easeOutBackSoft(t) {
-      const c1 = 1.12;
+      const c1 = 1.18;
       const c3 = c1 + 1;
       return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
     }
@@ -480,76 +744,50 @@
       });
     }
 
-    function scatterPoints(count, vw, vh) {
-      const marginX = 48;
-      const marginY = 64;
-      const cols = Math.max(3, Math.ceil(Math.sqrt(count * 1.8)));
-      const rows = Math.max(3, Math.ceil(count / cols));
-      const cells = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) cells.push({ r, c });
-      }
-      for (let i = cells.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [cells[i], cells[j]] = [cells[j], cells[i]];
-      }
-      const cellW = (vw - marginX * 2) / cols;
-      const cellH = (vh - marginY * 2) / rows;
-      return cells.slice(0, count).map(({ r, c }) => ({
-        x: marginX + (c + 0.18 + Math.random() * 0.64) * cellW,
-        y: marginY + (r + 0.18 + Math.random() * 0.64) * cellH
-      }));
+    function offscreenStart(hx, hy, vw, vh) {
+      const sides = ['top', 'bottom', 'left', 'right'];
+      const side = sides[Math.floor(Math.random() * 4)];
+      const pad = 90 + Math.random() * 160;
+      if (side === 'top') return { x: Math.random() * vw - hx, y: -pad - hy, side };
+      if (side === 'bottom') return { x: Math.random() * vw - hx, y: vh + pad - hy, side };
+      if (side === 'left') return { x: -pad - hx, y: Math.random() * vh - hy, side };
+      return { x: vw + pad - hx, y: Math.random() * vh - hy, side };
     }
 
     function makeStates(letters) {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const movers = letters.filter((el) => !el.classList.contains('space'));
-      const points = scatterPoints(movers.length, vw, vh);
-      let pi = 0;
       return letters.map((el) => {
-        if (el.classList.contains('space')) {
-          return { el, space: true };
-        }
+        if (el.classList.contains('space')) return { el, space: true };
         const rect = el.getBoundingClientRect();
         const hx = rect.left + rect.width / 2;
         const hy = rect.top + rect.height / 2;
-        const point = points[pi++];
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 110 + Math.random() * 260;
+        const start = offscreenStart(hx, hy, vw, vh);
         return {
           el,
           space: false,
-          hx,
-          hy,
-          x: point.x - hx,
-          y: point.y - hy,
-          rot: Math.random() * 820 - 410,
-          scale: 0.7 + Math.random() * 1.15,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          vr: (Math.random() * 2 - 1) * 520,
-          wx: 1.1 + Math.random() * 2.4,
-          wy: 0.9 + Math.random() * 2.6,
-          phase: Math.random() * Math.PI * 2,
-          delay: Math.random() * 260,
-          start: null,
+          x0: start.x,
+          y0: start.y,
+          mx: (Math.random() * 2 - 1) * 160,
+          my: (Math.random() * 2 - 1) * 120,
+          rot0: (Math.random() * 2 - 1) * 320,
+          scale0: 0.55 + Math.random() * 0.7,
+          delay: 30 + Math.random() * 420,
+          flight: FLIGHT_MS + Math.random() * 280,
+          started: false,
           locked: false
         };
       });
     }
 
-    function applyState(state, opacity) {
-      state.el.style.opacity = String(opacity);
-      state.el.style.transform = `translate(${state.x}px, ${state.y}px) rotate(${state.rot}deg) scale(${state.scale})`;
+    function applyLetter(el, x, y, rot, scale, opacity) {
+      el.style.opacity = String(opacity);
+      el.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${scale})`;
     }
 
     function animateLetters(states) {
       return new Promise((resolve) => {
         const start = performance.now();
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const movers = states.filter((state) => !state.space);
         let dropCount = 0;
 
         const tick = (now) => {
@@ -558,83 +796,39 @@
 
           for (const state of states) {
             if (state.space) {
-              const t = Math.min(1, elapsed / 400);
+              const t = Math.min(1, elapsed / 500);
               state.el.style.opacity = String(t);
               state.el.style.transform = 'none';
               continue;
             }
 
-            const convergeAt = CHAOS_MS + state.delay;
-            if (elapsed < convergeAt) {
+            const local = elapsed - state.delay;
+            if (local < 0) {
               allDone = false;
-              const dt = Math.min(0.032, (state._last ? now - state._last : 16) / 1000);
-              state._last = now;
-              const swirlX = Math.cos((elapsed / 1000) * state.wx + state.phase) * 52;
-              const swirlY = Math.sin((elapsed / 1000) * state.wy + state.phase) * 52;
-              state.x += (state.vx + swirlX) * dt;
-              state.y += (state.vy + swirlY) * dt;
-              state.rot += state.vr * dt;
-
-              const minX = 36 - state.hx;
-              const maxX = vw - 36 - state.hx;
-              const minY = 44 - state.hy;
-              const maxY = vh - 44 - state.hy;
-              if (state.x < minX) { state.x = minX; state.vx = Math.abs(state.vx) * 0.92; }
-              if (state.x > maxX) { state.x = maxX; state.vx = -Math.abs(state.vx) * 0.92; }
-              if (state.y < minY) { state.y = minY; state.vy = Math.abs(state.vy) * 0.92; }
-              if (state.y > maxY) { state.y = maxY; state.vy = -Math.abs(state.vy) * 0.92; }
-            } else {
-              if (!state.start) {
-                state.start = {
-                  x: state.x,
-                  y: state.y,
-                  rot: state.rot,
-                  scale: state.scale
-                };
-                dropSound(dropCount++);
-              }
-              const t = Math.min(1, (elapsed - convergeAt) / CONVERGE_MS);
-              if (t < 1) allDone = false;
-              const p = easeOutBackSoft(t);
-              const r = easeOutQuart(t);
-              state.x = lerp(state.start.x, 0, p);
-              state.y = lerp(state.start.y, 0, p);
-              state.rot = lerp(state.start.rot, 0, r);
-              state.scale = lerp(state.start.scale, 1, p);
-              if (t >= 1 && !state.locked) state.locked = true;
+              applyLetter(state.el, state.x0, state.y0, state.rot0, state.scale0, 0);
+              continue;
             }
-          }
 
-          if (elapsed < CHAOS_MS + 280) {
-            for (let i = 0; i < movers.length; i++) {
-              for (let j = i + 1; j < movers.length; j++) {
-                const a = movers[i];
-                const b = movers[j];
-                if (a.start || b.start) continue;
-                const dx = (a.x + a.hx) - (b.x + b.hx);
-                const dy = (a.y + a.hy) - (b.y + b.hy);
-                const dist = Math.hypot(dx, dy) || 0.0001;
-                const minDist = 92;
-                if (dist < minDist) {
-                  const push = (minDist - dist) * 0.22;
-                  const nx = dx / dist;
-                  const ny = dy / dist;
-                  a.x += nx * push;
-                  a.y += ny * push;
-                  b.x -= nx * push;
-                  b.y -= ny * push;
-                }
-              }
+            if (!state.started) {
+              state.started = true;
+              dropSound(dropCount++);
             }
-          }
 
-          for (const state of movers) {
-            const fade = state.start ? 1 : Math.min(1, elapsed / 180);
-            if (state.locked) {
+            const t = Math.min(1, local / state.flight);
+            if (t < 1) allDone = false;
+            const p = easeOutBackSoft(t);
+            const curve = Math.sin(Math.min(1, t) * Math.PI);
+            const x = lerp(state.x0, 0, p) + state.mx * curve;
+            const y = lerp(state.y0, 0, p) + state.my * curve;
+            const rot = lerp(state.rot0, 0, easeOutQuart(t));
+            const scale = lerp(state.scale0, 1, p);
+            const opacity = Math.min(1, t / 0.18);
+            if (t >= 1 && !state.locked) {
+              state.locked = true;
               state.el.style.opacity = '1';
               state.el.style.transform = 'none';
-            } else {
-              applyState(state, fade);
+            } else if (!state.locked) {
+              applyLetter(state.el, x, y, rot, scale, opacity);
             }
           }
 
@@ -656,6 +850,7 @@
 
       pressButton.classList.add('pressed');
       clickSound();
+      sendPress();
 
       await new Promise((resolve) => setTimeout(resolve, PRESS_MS));
       startScreen.classList.add('hidden');
@@ -683,11 +878,10 @@
           state.el.style.opacity = '0';
           state.el.style.transform = 'none';
         } else {
-          applyState(state, 0);
+          applyLetter(state.el, state.x0, state.y0, state.rot0, state.scale0, 0);
         }
       });
 
-      chaosSound();
       await animateLetters(states);
       finishSound();
       restart.classList.add('show');
@@ -711,6 +905,7 @@
     window.addEventListener('resize', () => {
       if (finalText.children.length) fitText();
     });
+    loadCount();
   </script>
 </body>
 </html>
