@@ -403,12 +403,11 @@
     }
 
     .final-text {
-      display: inline-flex;
-      flex-wrap: nowrap;
-      justify-content: center;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      white-space: nowrap;
-      gap: 0;
+      justify-content: center;
+      gap: .08em;
       width: max-content;
       max-width: none;
       font-size: 84px;
@@ -420,6 +419,15 @@
         0 1px 0 rgba(255, 230, 170, .22),
         0 14px 36px rgba(0, 0, 0, .55),
         0 0 48px rgba(212, 175, 85, .12);
+    }
+
+    .final-line {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: center;
+      white-space: nowrap;
+      width: max-content;
     }
 
     .letter {
@@ -436,7 +444,7 @@
       margin-right: 0;
     }
 
-    .letter:last-child { margin-right: 0; }
+    .final-line .letter:last-child { margin-right: 0; }
 
     .restart {
       position: fixed;
@@ -529,7 +537,109 @@
   <div class="grain" aria-hidden="true"></div>
 
   <script>
-    const message = 'SUCK A CARROT 🥕';
+    const LINES = [
+      'SUCK A CARROT 🥕',
+      'YOU JUST LOST 🤡',
+      'GO TOUCH GRASS 🌱',
+      'JACKPOT: NOTHING',
+      'BETTER LUCK NEVER',
+      'THE HOUSE GIGGLES',
+      'NICE TRY, CHAMP',
+      'YOUR LUCK LEFT 🚪',
+      'ALL IN, ALL OUT',
+      'SO CLOSE, SO NO',
+      'VIP: VERY EMPTY',
+      'GOLDEN DUCK 🦆',
+      'WHEEL SAID NOPE',
+      'CREDIT: ZERO',
+      'A FOR EFFORT 🏅',
+      'FOLD YOUR EGO',
+      'LUCK CALLED IN SICK',
+      'JACKPOT WENT HOME',
+      'YOU WON A SIGH',
+      'DEALER IS YAWNING',
+      'CHIPLESS WONDER',
+      'TRY A NAP INSTEAD',
+      'ODDS: UNIMPRESSED',
+      'THAT WAS ADORABLE',
+      'BANKROLL: CRUMBS',
+      'FORTUNE SAYS LOL',
+      'THE DICE SNORTED',
+      'MAYBE NEXT LIFE',
+      'ROYAL FLUSH: NOPE',
+      'GO PET A DOG 🐶',
+      'THE CARDS ARE MEAN',
+      'LUCK LEFT A NOTE',
+      'CONGRATS, ALMOST',
+      'SILLY LITTLE BET',
+      'CHIPS SAID BYE',
+      'NOW DO THE DISHES',
+      'WINNER OF NOTHING',
+      'PLEASE HOLD FOR NO',
+      'YOUR STREAK: DOWN',
+      'TOUCH SOME SUN ☀️',
+      'THE BELL IS FAKE',
+      'SLOT SAID SIT DOWN',
+      'ELEGANT DEFEAT',
+      'MIRAGE JACKPOT',
+      'RICH IN DELUSION',
+      'SO BRAVE, SO BROKE',
+      'THE VAULT IS BORED',
+      'NICE BUTTON WORK',
+      'LUCK IS ON LUNCH',
+      'TAKE A COOKIE 🍪',
+      'DRAMA, NO PRIZE',
+      'CASH OUT: A HUG',
+      'GO WATER A PLANT 🪴',
+      'ODDS ARE GIGGLING',
+      'BLUFF CALLED ITSELF',
+      'EMPTY TREASURE',
+      'PLEASE TRY COFFEE ☕',
+      'BONUS ROUND: NOPE',
+      'DEAL ME OUT',
+      'LUCK LEFT THE CHAT',
+      'THE WHEEL SAYS WALK',
+      'YOUR CROWN IS TIN',
+      'PARTY FOR NOBODY 🎈',
+      'TODAY IS NOT IT',
+      'GO SMELL A ROSE 🌹',
+      'STATISTICALLY SAD',
+      'THE POT IS A HOLE',
+      'ALMOST, IN THEORY',
+      'ELEGANTLY BROKE',
+      'THE TABLE YAWNS',
+      'JACKPOT IN SPIRIT',
+      'NOW GO STRETCH',
+      'FATE ROLLED A 1',
+      'YOU LOOK LUCKY. NO',
+      'THE CHIPS WADDLED',
+      'GO EAT A PEAR 🍐',
+      'NO PRIZE, BIG VIBE',
+      'THE LUCK FAIRY LEFT',
+      'SPIN ME A NAP',
+      'REGAL, YET EMPTY',
+      'THAT BET WAS ART',
+      'THE BALL SAID NAH',
+      'GO HIGH-FIVE A TREE',
+      'WINNINGS: A WINK 😉',
+      'HOUSE ALWAYS SMIRKS',
+      'YOUR POT IS SOUP',
+      'PLEASE TAKE A BOW',
+      'YOU ARE THE SHOW',
+      'ACE OF NOPE',
+      'GO FEED THE DUCKS 🦆',
+      'BROKE IN STYLE',
+      'A ROUND OF NOTHING',
+      'TRY YOUR OTHER LUCK',
+      'THE GOLD IS PAINTED',
+      'SIT THIS ONE OUT',
+      'DICE LOVE THE HOUSE',
+      'BROKE, BUT SHINY ✨',
+      'LUCK OUT OF OFFICE',
+      'GOODNIGHT, GAMBLER',
+      'THE POT WENT POOF'
+    ];
+
     const API = 'https://casino-counter.majas-tame.workers.dev';
     const FLIGHT_MS = 1400;
     const PRESS_MS = 170;
@@ -684,19 +794,91 @@
       }
     }
 
-    function fitText() {
+    let deck = [];
+    let lastLine = null;
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function nextLine() {
+      if (deck.length === 0) {
+        deck = shuffle(LINES);
+        if (lastLine && deck.length > 1 && deck[0] === lastLine) {
+          const swapAt = Math.max(1, deck.findIndex((line, index) => index > 0 && line !== lastLine));
+          [deck[0], deck[swapAt]] = [deck[swapAt], deck[0]];
+        }
+      }
+      lastLine = deck.shift();
+      return lastLine;
+    }
+
+    function visualLen(text) {
+      return graphemes(text).reduce((sum, char) => {
+        if (char === ' ' || char === '\u00A0') return sum + 0.28;
+        if (char.length > 1 || /\p{Extended_Pictographic}/u.test(char)) return sum + 1.15;
+        return sum + 0.72;
+      }, 0);
+    }
+
+    function bestSplit(text) {
+      const words = text.split(' ');
+      if (words.length < 2) return [text];
+      let bestAt = 1;
+      let bestScore = Infinity;
+      for (let i = 1; i < words.length; i++) {
+        const a = words.slice(0, i).join(' ');
+        const b = words.slice(i).join(' ');
+        const lonely = words.length >= 4 && (i === 1 || i === words.length - 1);
+        const score = Math.abs(visualLen(a) - visualLen(b)) + (lonely ? 3 : 0);
+        if (score < bestScore) {
+          bestScore = score;
+          bestAt = i;
+        }
+      }
+      return [words.slice(0, bestAt).join(' '), words.slice(bestAt).join(' ')];
+    }
+
+    function renderRows(rows) {
+      finalText.innerHTML = '';
       finalText.style.fontSize = '';
-      const available = Math.max(120, window.innerWidth - 48);
+      const letters = [];
+      rows.forEach((row) => {
+        const line = document.createElement('div');
+        line.className = 'final-line';
+        graphemes(row).forEach((char) => {
+          const span = document.createElement('span');
+          span.className = 'letter' + (char === ' ' ? ' space' : '');
+          span.textContent = char === ' ' ? '\u00A0' : char;
+          line.appendChild(span);
+          letters.push(span);
+        });
+        finalText.appendChild(line);
+      });
+      return letters;
+    }
+
+    function fitText() {
+      const availableW = Math.max(120, window.innerWidth - 48);
+      const availableH = Math.max(90, window.innerHeight - 180);
+      finalText.style.fontSize = '';
       const base = parseFloat(getComputedStyle(finalText).fontSize);
-      if (!base) return;
+      if (!base) return 28;
       let lo = 28;
       let hi = base;
       let best = 28;
       for (let i = 0; i < 14; i++) {
         const mid = (lo + hi) / 2;
         finalText.style.fontSize = `${mid}px`;
-        const width = finalText.getBoundingClientRect().width;
-        if (width <= available) {
+        const box = finalText.getBoundingClientRect();
+        const lineOverflow = [...finalText.querySelectorAll('.final-line')]
+          .some((line) => line.getBoundingClientRect().width > availableW);
+        if (box.width <= availableW && box.height <= availableH && !lineOverflow) {
           best = mid;
           lo = mid;
         } else {
@@ -704,19 +886,39 @@
         }
       }
       finalText.style.fontSize = `${best}px`;
+      return best;
     }
 
-    function buildLetters() {
-      finalText.innerHTML = '';
-      finalText.style.fontSize = '';
-      graphemes(message).forEach((char) => {
-        const span = document.createElement('span');
-        span.className = 'letter' + (char === ' ' ? ' space' : '');
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        finalText.appendChild(span);
-      });
-      fitText();
-      return [...finalText.children];
+    function prepareLine(message) {
+      renderRows([message]);
+      const oneSize = fitText();
+      if (message.includes(' ')) {
+        renderRows(bestSplit(message));
+        const twoSize = fitText();
+        if (oneSize >= twoSize - 4) {
+          renderRows([message]);
+          fitText();
+        }
+      }
+      return [...finalText.querySelectorAll('.letter')];
+    }
+
+    function buildLetters(message) {
+      return prepareLine(message);
+    }
+
+    function layoutLine(message, visible = true) {
+      startScreen.classList.add('hidden');
+      revealScreen.classList.remove('hidden');
+      const letters = prepareLine(message);
+      if (visible) {
+        letters.forEach((letter) => {
+          letter.style.opacity = '1';
+          letter.style.transform = 'none';
+        });
+        restart.classList.add('show');
+      }
+      return letters;
     }
 
     function easeOutBackSoft(t) {
@@ -856,7 +1058,8 @@
       startScreen.classList.add('hidden');
       revealScreen.classList.remove('hidden');
 
-      const letters = buildLetters();
+      const message = nextLine();
+      const letters = buildLetters(message);
       await waitFrames(2);
       fitText();
       await waitFrames(2);
@@ -903,8 +1106,18 @@
     pressButton.addEventListener('click', reveal);
     restart.addEventListener('click', reset);
     window.addEventListener('resize', () => {
-      if (finalText.children.length) fitText();
+      if (finalText.querySelector('.letter')) fitText();
     });
+    window.__CASINO = {
+      LINES,
+      nextLine,
+      forceLine(text) {
+        deck = [text];
+        lastLine = null;
+      },
+      layoutLine,
+      reset
+    };
     loadCount();
   </script>
 </body>
